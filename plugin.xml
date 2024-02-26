@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.commands">
+
+      <command
+            categoryId="aaaplugin.commands.category"
+            name="Sample Command"
+            id="aaaplugin.commands.sampleCommand">
+      </command>
+      
+      <command
+	        categoryId="aaaplugin.commands.category"
+	        name="Context Menu Command"
+	        id="aaaplugin.commands.contextMenuCommand">
+	  </command>
+	  
+   </extension>
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            class="com.envestnet.aaaplugin.handlers.SampleHandler"
+            commandId="aaaplugin.commands.sampleCommand">
+      </handler>
+      
+      <handler
+            class="com.envestnet.aaaplugin.handlers.ContextMenuHandler"
+            commandId="aaaplugin.commands.contextMenuCommand">
+   	  </handler>
+   </extension>
+   
+   <extension
+         point="org.eclipse.ui.bindings">
+      <key
+            commandId="aaaplugin.commands.sampleCommand"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            contextId="org.eclipse.ui.contexts.window"
+            sequence="M1+6">
+      </key>
+   </extension>
+   
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            locationURI="menu:org.eclipse.ui.main.menu?after=additions">
+         <menu
+               id="aaaplugin.menus.sampleMenu"
+               label="Sample Menu"
+               mnemonic="M">
+            <command
+                  commandId="aaaplugin.commands.sampleCommand"
+                  id="aaaplugin.menus.sampleCommand"
+                  mnemonic="S">
+            </command>
+         </menu>
+      </menuContribution>
+   </extension>
+   
+   <extension point="org.eclipse.ui.popupMenus">
+     <objectContribution
+	      objectClass="org.eclipse.core.resources.IResource"
+	      adaptable="true"
+	      id="aaaplugin.menus.contextMenu">
+	      <action
+	         label="AAA Analyzer"
+	         tooltip="Start AAA Analyzing"
+	         class="com.envestnet.aaaplugin.handlers.ContextMenuHandler"
+	         menubarPath="additions"
+	         icon="icons/aaa.png" 
+	         id="aaaplugin.menus.contextCommand">
+	      </action>
+     </objectContribution>
+   </extension>
+   
+	<extension
+	     point="org.eclipse.ui.views">
+	  <view
+	        name="AAA Analysis Results"
+	        icon="icons/aaa.png"
+	        category="org.eclipse.ui"
+	        class="com.envestnet.aaaplugin.view.ResultView"
+	        id="com.envestnet.aaaplugin.view.ResultView">
+	  </view>
+	</extension>
+
+      <!--Annotation-->
+      <extension point="org.eclipse.ui.editors.annotationTypes">
+            <annotationType
+            name="aaaplugin.highlight.purple"
+            label="Highlight Annotation"
+            super="org.eclipse.ui.workbench.texteditor.temp">
+            </annotationType>
+      </extension>
+
+      <extension point="org.eclipse.ui.editors.markerAnnotationSpecification">
+            <specification
+            annotationType="aaaplugin.highlight.purple"
+            colorPreferenceKey="AAA_color"
+            colorPreferenceValue="172,201,229"
+            contributesToHeader="false"
+            highlightPreferenceKey="AAA_highlight"
+            highlightPreferenceValue="true"
+            includeOnPreferencePage="true"
+            overviewRulerPreferenceKey="AAA_overviewRuler"
+            overviewRulerPreferenceValue="false"
+            presentationLayer="0"
+            textPreferenceKey="AAA_text"
+            textPreferenceValue="true"
+            textStylePreferenceKey="AAA_stylePreferences"
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="AAA_verticalRuler"
+            verticalRulerPreferenceValue="true"/>
+      </extension>
+
+
+</plugin>
