@@ -33,9 +33,9 @@ public class ObscureAssertVisitor extends ASTVisitor {
 
     @Override
     public void preVisit(ASTNode node) {
-        if (isControlFlowStatement(node)) {
+        if (isControlFlowStatement(node) || node instanceof SwitchCase) { // Handle SwitchCase as a separate control flow
             System.out.println("enter control flow statement: " + node.toString());
-            currentComplexity++; // visit control flow structure, complexity plus one
+            currentComplexity++; // Increment complexity for control flow structures
             maxComplexityInCurrentBlock = Math.max(maxComplexityInCurrentBlock, currentComplexity);
             complexityStack.push(new ArrayList<>());
             recordLineNumber(node);
@@ -44,12 +44,15 @@ public class ObscureAssertVisitor extends ASTVisitor {
 
     @Override
     public void postVisit(ASTNode node) {
-        if (isControlFlowStatement(node)) {
+        if (isControlFlowStatement(node) || node instanceof SwitchCase) { // Handle SwitchCase in postVisit as well
             currentComplexity--;
-            if (currentComplexity < 3 && !obscureAssertFound) {
-                recordedLineNumbers.removeAll(complexityStack.pop());
+            List<Integer> complexityLines = complexityStack.pop();
+            if (currentComplexity < 2 && !obscureAssertFound) {
+                recordedLineNumbers.removeAll(complexityLines);
             } else {
-                recordedLineNumbers.addAll(complexityStack.pop());
+                for (int lineNumber : complexityLines) {
+                    insertInSortedOrder(recordedLineNumbers, lineNumber);
+                }
             }
             if (currentComplexity == 0) {
                 maxComplexityInCurrentBlock = 0;
@@ -57,21 +60,25 @@ public class ObscureAssertVisitor extends ASTVisitor {
         }
     }
 
+    private void insertInSortedOrder(List<Integer> list, int lineNumber) {
+        int position = 0;
+        while (position < list.size() && list.get(position) < lineNumber) {
+            position++;
+        }
+        list.add(position, lineNumber);
+    }
+
     @Override
     public boolean visit(MethodInvocation node) {
-//        System.out.println("visit method invocation: " + node.toString());
-//        System.out.println("maxComplexityInCurrentBlock: " + maxComplexityInCurrentBlock);
-//        System.out.println("isJUnitAssertion: " + isJUnitAssertion(node));
-        if (maxComplexityInCurrentBlock >= 3 && isJUnitAssertion(node)) {
+        if (maxComplexityInCurrentBlock >= 2 && isJUnitAssertion(node)) {
             obscureAssertFound = true;
         }
         return super.visit(node);
     }
 
-
     private boolean isControlFlowStatement(ASTNode node) {
         return node instanceof IfStatement || node instanceof ForStatement ||
-                node instanceof WhileStatement || node instanceof SwitchStatement;
+                node instanceof WhileStatement || node instanceof SwitchStatement; // Already considers SwitchStatement
     }
 
     private boolean isJUnitAssertion(MethodInvocation node) {
@@ -80,12 +87,10 @@ public class ObscureAssertVisitor extends ASTVisitor {
         ITypeBinding declaringClass = binding.getDeclaringClass();
         if (declaringClass != null) {
             String className = declaringClass.getQualifiedName();
-            System.out.println("Contains assert: " + className.contains("assert"));
-            // Check Assertion
             return className.startsWith("org.junit") ||
                     className.startsWith("org.hamcrest") ||
                     className.startsWith("org.testng") ||
-                    className.startsWith("org.assertj") ;
+                    className.startsWith("org.assertj");
         }
         return false;
     }
@@ -99,7 +104,6 @@ public class ObscureAssertVisitor extends ASTVisitor {
         }
     }
 
-
     public boolean hasObscureAssert() {
         return obscureAssertFound;
     }
@@ -107,6 +111,4 @@ public class ObscureAssertVisitor extends ASTVisitor {
     public List<Integer> getRecordedLineNumbers() {
         return recordedLineNumbers;
     }
-    
 }
-

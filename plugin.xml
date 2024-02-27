@@ -41,23 +41,6 @@
       </key>
    </extension>
    
-   <extension
-         point="org.eclipse.ui.menus">
-      <menuContribution
-            locationURI="menu:org.eclipse.ui.main.menu?after=additions">
-         <menu
-               id="aaaplugin.menus.sampleMenu"
-               label="Sample Menu"
-               mnemonic="M">
-            <command
-                  commandId="aaaplugin.commands.sampleCommand"
-                  id="aaaplugin.menus.sampleCommand"
-                  mnemonic="S">
-            </command>
-         </menu>
-      </menuContribution>
-   </extension>
-   
    <extension point="org.eclipse.ui.popupMenus">
      <objectContribution
 	      objectClass="org.eclipse.core.resources.IResource"

@@ -2,6 +2,7 @@ package com.envestnet.aaaplugin.core.vistor;
 
 import org.eclipse.jdt.core.dom.*;
 
+//import java.beans.Expression;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,37 +12,40 @@ public class SuppressedExceptionVisitor extends ASTVisitor {
 
     @Override
     public boolean visit(TryStatement node) {
-        List<?> catchClauses = node.catchClauses();
-        for (Object obj : catchClauses) {
-            CatchClause catchClause = (CatchClause) obj;
-            Block catchBlock = catchClause.getBody();
-
-            // Check if the catch block is empty or contains only a print statement
-            if (catchBlock.statements().isEmpty() || containsOnlyPrintOrFailStatement(catchBlock)) {
-                // Exclude cases with JUnit fail() call
-                if (!containsFailCall(catchBlock)) {
-                    recordSuppressedException(node);
+        // Check if the try block contains a fail call
+        if (!containsFailCall(node.getBody())) {
+            List<?> catchClauses = node.catchClauses();
+            for (Object obj : catchClauses) {
+                CatchClause catchClause = (CatchClause) obj;
+                Block catchBlock = catchClause.getBody();
+                // Check if the catch block is empty or contains print statement(s)
+                if (catchBlock.statements().isEmpty() || containsPrintStatement(catchBlock)) {
+                    recordSuppressedException(node, catchClause);
                 }
             }
         }
         return super.visit(node);
     }
 
-    private void recordSuppressedException(TryStatement node) {
+    private void recordSuppressedException(TryStatement tryStatement, CatchClause catchClause) {
         suppressedException = true;
-        int lineNumber = ((CompilationUnit) node.getRoot()).getLineNumber(node.getStartPosition());
-        suppressedExceptionLineNumbers.add(lineNumber);
+        CompilationUnit cu = (CompilationUnit) tryStatement.getRoot();
+        int tryLineNumber = cu.getLineNumber(tryStatement.getStartPosition());
+        int catchLineNumber = cu.getLineNumber(catchClause.getStartPosition());
+        // You might want to store these in a more structured way depending on your needs
+        suppressedExceptionLineNumbers.add(tryLineNumber);
+        suppressedExceptionLineNumbers.add(catchLineNumber);
     }
-
-    private boolean containsOnlyPrintOrFailStatement(Block catchBlock) {
-        if (catchBlock.statements().size() == 1) {
-            Statement statement = (Statement) catchBlock.statements().get(0);
+    
+    private boolean containsPrintStatement(Block catchBlock) {
+        for (Object obj : catchBlock.statements()) {
+            Statement statement = (Statement) obj;
             if (statement instanceof ExpressionStatement) {
                 Expression expression = ((ExpressionStatement) statement).getExpression();
                 if (expression instanceof MethodInvocation) {
                     MethodInvocation methodInvocation = (MethodInvocation) expression;
                     IMethodBinding binding = methodInvocation.resolveMethodBinding();
-                    if (binding != null && (isPrintMethod(binding) || isFailMethod(binding))) {
+                    if (binding != null && isPrintMethod(binding)) {
                         return true;
                     }
                 }
@@ -71,9 +75,21 @@ public class SuppressedExceptionVisitor extends ASTVisitor {
         return false;
     }
 
-    private boolean containsFailCall(Block catchBlock) {
-        // This method is similar to containsOnlyPrintOrFailStatement but focuses on the fail() call
-        return containsOnlyPrintOrFailStatement(catchBlock); // Reuse logic since it's already checking for fail()
+    private boolean containsFailCall(Block block) {
+        for (Object obj : block.statements()) {
+            Statement statement = (Statement) obj;
+            if (statement instanceof ExpressionStatement) {
+                Expression expression = ((ExpressionStatement) statement).getExpression();
+                if (expression instanceof MethodInvocation) {
+                    MethodInvocation methodInvocation = (MethodInvocation) expression;
+                    IMethodBinding binding = methodInvocation.resolveMethodBinding();
+                    if (binding != null && isFailMethod(binding)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public List<Integer> getSuppressedExceptionLineNumbers() {

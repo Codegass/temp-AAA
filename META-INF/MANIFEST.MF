@@ -27,5 +27,4 @@ Bundle-ClassPath: .,
  jar/commons-lang3-3.11.jar,
  jar/commons-logging-1.2.jar,
  jar/commons-text-1.9.jar,
- jar/gson-2.10.1.jar,
- jar/commons-exec-1.3.jar
+ jar/gson-2.10.1.jar

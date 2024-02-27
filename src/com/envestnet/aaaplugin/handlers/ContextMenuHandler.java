@@ -1,12 +1,11 @@
 package com.envestnet.aaaplugin.handlers;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +28,12 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
@@ -49,16 +53,16 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.dialogs.ProgressMonitorDialog;
-import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.DirectoryDialog;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
 
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -66,7 +70,6 @@ import com.opencsv.CSVWriter;
 import com.opencsv.RFC4180Parser;
 import com.opencsv.RFC4180ParserBuilder;
 import com.opencsv.exceptions.CsvException;
-import com.opencsv.exceptions.CsvValidationException;
 
 public class ContextMenuHandler implements IObjectActionDelegate {
 	
@@ -80,8 +83,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 	private String outputBase;
 	private List<String[]> testCases;
 	
-	private ReportGenerator reportGenerator = new ReportGenerator();
-	private Map<String, Boolean> DFR = new HashMap<>(); //TODO: Change to detection result count
+	private ReportGenerator reportGenerator;
 
     @Override
     public void setActivePart(IAction action, IWorkbenchPart targetPart) {
@@ -93,6 +95,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
         if (selection instanceof IStructuredSelection) {
             IStructuredSelection structuredSelection = (IStructuredSelection) this.selection;
             Object firstElement = structuredSelection.getFirstElement();
+            reportGenerator = new ReportGenerator();
             
             if (firstElement instanceof IResource) {
                 IResource resource = (IResource) firstElement; 
@@ -104,180 +107,223 @@ public class ContextMenuHandler implements IObjectActionDelegate {
         		outputBase = rootPath + File.separator + "AAA";
         		new File(rootPath, "AAA").mkdir();
         		System.out.println(outputBase);
-
-        		TestDetector testDetector = new TestDetector(projectRoot);
-
-        		ProgressMonitorDialog dialog = new ProgressMonitorDialog(window.getShell());
         		
-        		try {
-        			String testTargetsFile = testDetector.detectTestsAndSaveToCSV(outputBase);	
-
-					dialog.run(true, true, new IRunnableWithProgress() {
-						@Override
-						public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
-							monitor.beginTask("AAA Analyzing...", testDetector.testCount);
-							try {
-								FileReader inputfile = new FileReader(testTargetsFile);
-								// create CSVWriter object filewriter object as parameter
-	
+				Job aaaAnalysisJob = new Job("AAA Analysis") {
+					@Override
+					protected IStatus run(IProgressMonitor monitor) {
+						String testTargetsFile;
+						try {
+							TestDetector testDetector = new TestDetector(projectRoot);
+							testTargetsFile = testDetector.detectTestsAndSaveToCSV(outputBase);
+							
+							// Initial task setup
+							int totalTestCases = countTestCases(testTargetsFile);
+				            monitor.beginTask("AAA Tagging...", totalTestCases);
+							
+							try (FileReader inputfile = new FileReader(testTargetsFile)) {
+								// Setup for reading CSV
 								RFC4180Parser rfc4180Parser = new RFC4180ParserBuilder().build();
-								reader = new CSVReaderBuilder(inputfile).withCSVParser(rfc4180Parser).build();
-								int count = 0;
-								testCases = reader.readAll();
-								System.out.println("CSV Reading Finished.");					
-								
-								for (String[] line : testCases) {
-									if (monitor.isCanceled()) {
-										break;
+								try (CSVReader reader = new CSVReaderBuilder(inputfile)
+										.withCSVParser(rfc4180Parser)
+										.build()) {
+									testCases = reader.readAll();
+									System.out.println("CSV Reading Finished.");
+									
+									int count = 0;
+									for (String[] line : testCases) {
+										if (monitor.isCanceled()) {
+											return Status.CANCEL_STATUS;
+										}
+										try {
+											featureExtraction(line, count++);
+											monitor.worked(1);
+										} catch (IOException e) {
+											e.printStackTrace();
+										}
 									}
+								} catch (CsvException e) {
+									e.printStackTrace();
+								}
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+							
+							if (monitor.isCanceled()) {
+								return Status.CANCEL_STATUS;
+							}
+							
+							
+							return Status.OK_STATUS;
+						} catch (IOException e) {
+							e.printStackTrace();
+							return new Status(IStatus.ERROR, "aaaanalyzer", "Error occurred during AAA Tagging", e);
+						} finally {
+							monitor.done();
+						}
+					}
+				};
+
+				Job mlProcessingJob = new Job("Machine Learning Processing") {
+					@Override
+					protected IStatus run(IProgressMonitor monitor) {
+						try {
+							MachineLearningProcessing mlProcessing = new MachineLearningProcessing();
+							mlProcessing.setProjectRoot(rootPath); // Ensure rootPath is accessible
+							mlProcessing.setupAndExecutePythonScript();
+											
+							return Status.OK_STATUS;
+						} catch (Exception e) {
+							e.printStackTrace();
+							return new Status(IStatus.ERROR, "aaaanalyzer", "Error occurred during ML processing", e);
+						}
+					}
+				};
+
+				Job antiPatternDetectionJob = new Job("Anti-Pattern Detection") {
+					@Override
+					protected IStatus run(IProgressMonitor monitor) {
+						// Define the body of your job here
+						try {
+							// Include the anti-pattern detection logic you provided here
+							List<String> csvFiles = FileUtils.findCsvFiles(outputBase + File.separator + "feature");
+							int totalTestCase = csvFiles.size();
+							Set<String> uniqueClassNames = new HashSet<>();
+							for (String csvFile : csvFiles) {
+								String className = FileUtils.extractPart(csvFile);
+								uniqueClassNames.add(className);
+							}
+							int totalClass = uniqueClassNames.size();
+							int totalLines = 0;
+							
+							// Assume testCases is accessible, otherwise you need to make it so
+							for (int i = 0; i < testCases.size(); i++) {
+								String[] testCase = testCases.get(i);
+								System.out.println("testCase: " + testCase[0]);
+								String sourceFilePath = testCase[0];
+								String methodName = testCase[1].split(":")[1].trim();
+								System.out.println("methodName: " + methodName);
+								String csvFile = outputBase + File.separator + "feature" + File.separator + testCase[1].replace(":", ".") + ".csv";
+								System.out.println("csvFile: " + csvFile);
+								try {
+									AntiPatternDetector antiPatternDetector = new AntiPatternDetector();
+									Map<String, Boolean> results = antiPatternDetector.detectAntiPatterns(csvFile);
+									System.out.println("detecting anti-patterns with file: " + csvFile);
+									System.out.println(results);
+									
+									if (results.get("missingAssert")) {
+										String severity = "Blocker";
+										String description = "Missing Assert ";
+										//build the line number is to get the method
+										List<Integer> lineNumbers = antiPatternDetector.getLineNumberMissingAssert();
+										//add design flaw to report
+										reportGenerator.addAntiPattern(new AntiPattern(sourceFilePath, methodName,
+																						testCase[1].split(":")[0].trim(), lineNumbers,
+																						"missingAssert", description, severity));
+									} else if (results.get("multipleAAA")) {
+										String severity = "Minor";
+										String description = "Multiple-AAA";
+										//build the line number is to get the method
+										List<Integer> lineNumbers = antiPatternDetector.getLineNumberMultipleAAA();
+										//add design flaw to report
+										reportGenerator.addAntiPattern(new AntiPattern(sourceFilePath, methodName,
+																						testCase[1].split(":")[0].trim(), lineNumbers,
+																						"multipleAAA", description, severity));
+									} else if (results.get("assertPrecondition")) {
+										String severity = "Info";
+										String description = "Assert Precondition ";
+										//build the line number is to get the method
+										List<Integer> lineNumbers = antiPatternDetector.getLineNumberAssertPrecondition();
+										//add design flaw to report
+										reportGenerator.addAntiPattern(new AntiPattern(sourceFilePath, methodName,
+																						testCase[1].split(":")[0].trim(), lineNumbers,
+																						"assertPrecondition", description, severity));
+
+									}
+								} catch (IOException | CsvException e) {
+									e.printStackTrace();
+								}
+							}
+							
+							// Assuming reportGenerator is accessible and properly initialized
+							reportGenerator.checkDefault();
+							reportGenerator.generateReport(outputBase + File.separator + "results.json");
+							
+							// Notify user of completion, update UI as necessary
+							Display.getDefault().asyncExec(new Runnable() {
+								public void run() {
+									MessageDialog.openInformation(Display.getDefault().getActiveShell(), "AAA Analyzing", "AAA Analyzing Finished.");
+									// Additional UI updates here
+								}
+							});
+
+							Display.getDefault().asyncExec(new Runnable() {
+								public void run() {
 									try {
-										featureExtraction(line, count++);
-										monitor.worked(1);
-									} catch (IOException e) {
+										// Get the current workbench page
+										IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+										
+										// Open or activate the ResultView
+										ResultView resultView = (ResultView) page.showView("com.envestnet.aaaplugin.view.ResultView");  // Adjust the ID to your actual view ID
+										
+										// Update the view
+										List<String> projectRoots = ProjectScanner.scanWorkspaceForProjects();
+										resultView.updateViewFromProjects(projectRoots);
+										
+									} catch (PartInitException e) {
 										e.printStackTrace();
 									}
 								}
-								monitor.done();
-							} catch (CsvValidationException e) {
-								e.printStackTrace();
-							} catch (IOException e) {
-								e.printStackTrace();
-							} catch (CsvException e) {
-								e.printStackTrace();
-							}
-					}});
-        		} catch (IOException e) {
-        			e.printStackTrace();
-        		}  catch (InvocationTargetException e) {
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+							});
+				
+							return Status.OK_STATUS;
+						} catch (Exception e) {
+							e.printStackTrace();
+							return new Status(IStatus.ERROR, "aaaanalyzer", "Error occurred during anti-pattern detection", e);
+						}
+					}
+				};
+				
 
-        		//TODO: Python Runner
-        		MachineLearningProcessing mlProcessing = new MachineLearningProcessing();
-        		mlProcessing.setProjectRoot(rootPath);
-                mlProcessing.setupAndExecutePythonScript();
-                
-        		//WORKINGON: Detector
-                
-                //AntiPatternDetector
-                //Read all the cvs files in the AAA/feature folder under the project root
-                List<String> csvFiles = FileUtils.findCsvFiles(outputBase + File.separator + "feature");
-                //count the number of csv files
-                int totalTestCase = csvFiles.size();
-                //count total class using the csv file path
-                Set<String> uniqueClassNames = new HashSet<>();
-                for (String csvFile : csvFiles) {
-                    String className = FileUtils.extractPart(csvFile);
-                    uniqueClassNames.add(className);
-                }
-                int totalClass = uniqueClassNames.size();
-                //count total lines from all the csv files
-                int totalLines = 0;
-                
-                // loop the csv files and testCases list in the same time
-                for (int i = 0; i < testCases.size(); i++) {
-                    
-                    String[] testCase = testCases.get(i);
-					System.out.println("testCase: " + testCase[0]);
-                    String sourceFilePath = testCase[0];
-                    String methodName = testCase[1].split(":")[1].trim();
-					System.out.println("methodName: " + methodName);
-					 String csvFile = outputBase + File.separator + "feature" + File.separator + testCase[1].replace(":", ".") + ".csv";
-					System.out.println("csvFile: " + csvFile);
-                    try {
-                        AntiPatternDetector antiPatternDetector = new AntiPatternDetector();
-                        Map<String, Boolean> results = antiPatternDetector.detectAntiPatterns(csvFile);
-						System.out.println("detecting anti-patterns with file: " + csvFile);
-                        System.out.println(results);
-                        if (results.get("missingAssert")) {
-                            // build the compilation unit to check if there is assert in the test method
-                            try {
-                            	IWorkspace workspace = ResourcesPlugin.getWorkspace();
-                                IPath path = Path.fromOSString(new File(sourceFilePath).getAbsolutePath());
-                                IFile file = workspace.getRoot().getFileForLocation(path);
-                                
-                                if (file != null) {
-                                	ICompilationUnit iCompilationUnit = JavaCore.createCompilationUnitFrom(file);
-                                	if (iCompilationUnit != null) {
-                                		ASTParser parser = ASTParser.newParser(AST.JLS_Latest);
-                                        parser.setKind(ASTParser.K_COMPILATION_UNIT);
-                                        parser.setSource(iCompilationUnit); // set source
-                                        parser.setResolveBindings(true); // we need bindings later on for the type resolution
-                                        
-                                        CompilationUnit cu = (CompilationUnit) parser.createAST(null); // parse
-                                        
-                                        MethodVisitor visitor = new MethodVisitor();
-                                        cu.accept(visitor);
-                                        
-                                        for (MethodDeclaration md : visitor.getMethods()) {
-                                        	if (md.getName().getFullyQualifiedName().equals(methodName)) {
-                                        		String methodBody = md.getBody().toString();
-                                                if (!methodBody.contains("assert")) {
-                                                    results.put("missingAssert", false);
-                                                }
-                                        	}
-                                        }
-                                	}
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        if (results.get("missingAssert")) {
-                            String severity = "Blocker";
-                            String description = "Missing Assert ";
-                            //build the line number is to get the method
-                            List<Integer> lineNumbers = antiPatternDetector.getLineNumberMissingAssert();
-                            //add design flaw to report
-                            reportGenerator.addAntiPattern(new AntiPattern(sourceFilePath, methodName,
-                                                                            testCase[1].split(":")[0].trim(), lineNumbers,
-                                                                            "missingAssert", description, severity));
-                        } else if (results.get("multipleAAA")) {
-                            String severity = "Minor";
-                            String description = "Multiple-AAA";
-                            //build the line number is to get the method
-                            List<Integer> lineNumbers = antiPatternDetector.getLineNumberMultipleAAA();
-                            //add design flaw to report
-                            reportGenerator.addAntiPattern(new AntiPattern(sourceFilePath, methodName,
-                                                                            testCase[1].split(":")[0].trim(), lineNumbers,
-                                                                            "multipleAAA", description, severity));
-                        } else if (results.get("assertPrecondition")) {
-                            String severity = "Info";
-                            String description = "Assert Precondition ";
-                            //build the line number is to get the method
-                            List<Integer> lineNumbers = antiPatternDetector.getLineNumberAssertPrecondition();
-                            //add design flaw to report
-                            reportGenerator.addAntiPattern(new AntiPattern(sourceFilePath, methodName,
-                                                                            testCase[1].split(":")[0].trim(), lineNumbers,
-                                                                            "assertPrecondition", description, severity));
+				// AAA analysisjob listener
+				aaaAnalysisJob.addJobChangeListener(new JobChangeAdapter() {
+					@Override
+					public void done(IJobChangeEvent event) {
+						if (event.getResult().isOK()) {
+							// Only schedule the ML processing job if the first job completed successfully
+							mlProcessingJob.schedule();
+						} else {
+							// Handle the case where the first job did not complete successfully
+							Display.getDefault().asyncExec(new Runnable() {
+								public void run() {
+									MessageDialog.openError(window.getShell(), "Error", "AAA Analysis did not complete successfully.");
+								}
+							});
+						}
+					}
+				});
 
-                        }
-                    } catch (IOException | CsvException e) {
-                        e.printStackTrace();
-                    }
-                }
-                
-				reportGenerator.checkDefault();
-                reportGenerator.generateReport(outputBase + File.separator + "results.json");
+				// ML processing job listener
+				mlProcessingJob.addJobChangeListener(new JobChangeAdapter() {
+					@Override
+					public void done(IJobChangeEvent event) {
+						if (event.getResult().isOK()) {
+							// Only schedule the anti-pattern detection job if the ML processing job completed successfully
+							antiPatternDetectionJob.schedule();
+						} else {
+							// Handle the case where the ML processing job did not complete successfully
+							Display.getDefault().asyncExec(new Runnable() {
+								public void run() {
+									MessageDialog.openError(Display.getDefault().getActiveShell(), "Error", "ML Processing did not complete successfully.");
+								}
+							});
+						}
+					}
+				});				
 
-        		MessageDialog.openInformation(window.getShell(), "AAA Analyzer", "AAA Analyzing Finished.");
-        		
-        		//Open the view
-        	    try {
-        	        // 获取当前的工作台页面
-        	        IWorkbenchPage page = window.getActivePage();
+				// Set job properties as needed
+				aaaAnalysisJob.setUser(true); // Mark the job as a user job
+				aaaAnalysisJob.schedule(); // Schedule the job
 
-        	        // 打开或激活ResultView
-        	        ResultView resultView = (ResultView) page.showView("com.envestnet.aaaplugin.view.ResultView");  // 修改这里的ID为您的实际ID
-
-        	        // 更新视图
-					List<String> projectRoots = ProjectScanner.scanWorkspaceForProjects();
-        	        resultView.updateViewFromProjects(projectRoots);
-        	    } catch (PartInitException e) {
-        	        e.printStackTrace();
-        	    }
             }
         }
     }
@@ -641,6 +687,17 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 		dialog.setMessage("Select a folder");
 		return dialog.open();
 	}
+	
+	private int countTestCases(String filePath) throws IOException {
+	    int totalCases = 0;
+	    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+	        while (reader.readLine() != null) {
+	            totalCases++;
+	        }
+	    }
+	    return totalCases;
+	}
+
 
 	private void featureExtraction(String[] line, int count) throws IOException {
 		File fileName = new File(line[0]);

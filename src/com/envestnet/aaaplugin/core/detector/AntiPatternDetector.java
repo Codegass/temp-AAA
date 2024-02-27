@@ -6,8 +6,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,52 +27,44 @@ public class AntiPatternDetector {
             boolean missingAssert = true;
             boolean assertPrecondition = false;
 
-            if (allRecords.size() == 1) { // Only header, no data
+            if (allRecords.size() <= 1) { // Only header or no data
                 missingAssert = false;
                 return createResultMap(multipleAAA, missingAssert, assertPrecondition);
             }
 
-            int lastAAA = 0;
-            int actionQuality = 0;
-            
             List<String[]> records = allRecords.subList(1, allRecords.size()); // Drop header row
-
-            for (int i = 0; i < records.size(); i++) {
-                String[] record = records.get(i);
-                int currentAAA = Integer.parseInt(record[4]); // AAA col
-                List<Integer> lineNumbers = parseLineNumbers(record[5]); // Line number col
-
-                if (currentAAA == 0) continue;
+            Map<String, Integer> actionFunctionNameCounts = new HashMap<>(); // Track counts of each action function name
+            
+            for (String[] record : records) {
+                int currentAAA = Integer.parseInt(record[4]); // AAA column
+                if (currentAAA == 0) continue; // Ignoring Arrangement
                 
-                if (currentAAA == 1) {
-                    actionQuality++;
-                }
-
-                if (currentAAA == 2) {
+                String functionName = record[3]; // Function invocation name
+                if (currentAAA == 1) { // Action
+                    actionFunctionNameCounts.put(functionName, actionFunctionNameCounts.getOrDefault(functionName, 0) + 1);
+                } else if (currentAAA == 2) { // Assertion
                     missingAssert = false;
                 }
-
-                // Multiple AAA
-                if (lastAAA == 2 && currentAAA == 1 && actionQuality > 1) {
-                    multipleAAA = true;
-                    lineNumberMultipleAAA.addAll(lineNumbers);
-                }
-
-
-                if (currentAAA == 2 && lastAAA == 1) {
-                    missingAssert = false;
-                    if (i > 0) {
-                        lineNumberAssertPrecondition.addAll(parseLineNumbers(records.get(i - 1)[5]));
-                    }
-                }
-
-                lastAAA = currentAAA;
             }
 
-            if (missingAssert) {
-                lineNumberMissingAssert.clear();
+            // Determine if it's multiple AAA based on actionFunctionNameCounts
+            for (Map.Entry<String, Integer> entry : actionFunctionNameCounts.entrySet()) {
+                if (entry.getValue() > 1) {
+                    multipleAAA = true;
+                    break;
+                }
+            }
+
+            // Populate line numbers for multipleAAA and missingAssert
+            if (multipleAAA || missingAssert) {
                 for (String[] record : records) {
-                    lineNumberMissingAssert.addAll(parseLineNumbers(record[5]));
+                    List<Integer> lineNumbers = parseLineNumbers(record[5]);
+                    if (multipleAAA) {
+                        lineNumberMultipleAAA.addAll(lineNumbers);
+                    }
+                    if (missingAssert) {
+                        lineNumberMissingAssert.addAll(lineNumbers);
+                    }
                 }
             }
 
