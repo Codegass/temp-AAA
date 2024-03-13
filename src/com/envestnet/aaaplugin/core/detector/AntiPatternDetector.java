@@ -35,15 +35,22 @@ public class AntiPatternDetector {
             List<String[]> records = allRecords.subList(1, allRecords.size()); // Drop header row
             Map<String, Integer> actionFunctionNameCounts = new HashMap<>(); // Track counts of each action function name
             
+            boolean actionExist = false; // Track the AAA value
+            
             for (String[] record : records) {
                 int currentAAA = Integer.parseInt(record[4]); // AAA column
                 if (currentAAA == 0) continue; // Ignoring Arrangement
                 
-                String functionName = record[3]; // Function invocation name
+                String functionName = record[3]; // Function invocation name TODO:Check Action name are the same
+                List<Integer> lineNumbers = parseLineNumbers(record[5]);
                 if (currentAAA == 1) { // Action
+                	actionExist = true;
                     actionFunctionNameCounts.put(functionName, actionFunctionNameCounts.getOrDefault(functionName, 0) + 1);
                 } else if (currentAAA == 2) { // Assertion
                     missingAssert = false;
+                    if (!actionExist) {
+                    	lineNumberAssertPrecondition.addAll(lineNumbers);
+                    }
                 }
             }
 
@@ -54,11 +61,19 @@ public class AntiPatternDetector {
                     break;
                 }
             }
-
+            
+            //BUG! This add all the line number to multiple AAA and missing assert case which does not remove the expanded invocations.
             // Populate line numbers for multipleAAA and missingAssert
             if (multipleAAA || missingAssert) {
                 for (String[] record : records) {
                     List<Integer> lineNumbers = parseLineNumbers(record[5]);
+                    String qualifiedName = record[4];
+
+                    // Check if the qualifiedName starts with 5 spaces(expanded method), if so skip the line number adding
+                    if (qualifiedName.startsWith("     ")) {
+                        continue; // Skip to the next iteration of the loop
+                    }
+                    
                     if (multipleAAA) {
                         lineNumberMultipleAAA.addAll(lineNumbers);
                     }
@@ -71,7 +86,7 @@ public class AntiPatternDetector {
             return createResultMap(multipleAAA, missingAssert, assertPrecondition);
         }
     }
-
+    
     private List<Integer> parseLineNumbers(String lineNumberStr) {
         List<Integer> lineNumbers = new ArrayList<>();
         Pattern p = Pattern.compile("\\d+");

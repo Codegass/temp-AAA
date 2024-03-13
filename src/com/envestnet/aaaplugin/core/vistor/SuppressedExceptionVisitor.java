@@ -2,6 +2,7 @@ package com.envestnet.aaaplugin.core.vistor;
 
 import org.eclipse.jdt.core.dom.*;
 
+import java.beans.Expression;
 //import java.beans.Expression;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +71,7 @@ public class SuppressedExceptionVisitor extends ASTVisitor {
         if (declaringClass != null) {
             String className = declaringClass.getQualifiedName();
             // Check for JUnit 4 and 5 fail() method
-            return (className.equals("org.junit.Assert") || className.equals("org.junit.jupiter.api.Assertions")) && methodBinding.getName().equals("fail");
+            return (className.equals("org.junit.Assert") || className.contains("junit.framework.TestCase") || className.equals("org.junit.jupiter.api.Assertions")) && methodBinding.getName().equals("fail");
         }
         return false;
     }

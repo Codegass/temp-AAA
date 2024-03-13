@@ -508,7 +508,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 	}
 
 	private static boolean isMockito(MethodInvocation mi) {
-		if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.mockito")) {
+		if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.mockito") && !mi.resolveMethodBinding().getMethodDeclaration().getName().contains("verify")) {
 			return true;
 		}
 
@@ -532,11 +532,11 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 	}
 
 	private static boolean isEasyMock(MethodInvocation mi) {
-		if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.easymock")) {
+		if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.easymock") && !mi.resolveMethodBinding().getMethodDeclaration().getName().contains("verify")) {
 			return true;
+		} else {
+			return false;
 		}
-
-		return false;
 	}
 
 	private static int parameterQuantity(MethodInvocation mi) {
@@ -544,18 +544,22 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 		return binding.getParameterTypes().length;
 	}
 
-	private static boolean isAssert(MethodInvocation mc) {
-		if (mc.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains(".Assert")) {
+	private static boolean isAssert(MethodInvocation mi) {
+		if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains(".Assert")) {
 			return true;
-		} else if (mc.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("MatcherAssert")) {
+		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("MatcherAssert")) {
 			return true;
-		} else if (mc.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("org.hamcrest")) {
+		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("org.hamcrest")) {
 			return true;
-		} else if (mc.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("org.junit")) {
+		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("org.junit")) {
 			return true;
-		} else if (mc.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("org.assertj")) {
+		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("org.assertj")) {
 			return true;
-		} else if (mc.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("com.google.common.truth")) {
+		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().contains("com.google.common.truth")) {
+			return true;
+		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.mockito") && mi.resolveMethodBinding().getMethodDeclaration().getName().contains("verify")) {
+			return true;
+		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.easymock") && mi.resolveMethodBinding().getMethodDeclaration().getName().contains("verify")) {
 			return true;
 		}
 
@@ -566,7 +570,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 		List<String[]> result = new ArrayList<>();
 		for (String method : visited) {
 			String[] methodSplit = method.split("#");
-			if (method.trim().startsWith("ASSERT")) {
+			if (method.trim().startsWith("ASSERT") || method.trim().startsWith("@EXPECTED")) {
 				result.add(new String[]{packageName, className, methodName, methodSplit[0], "2", methodSplit[1]});
 			} else {
 				result.add(new String[]{packageName, className, methodName, methodSplit[0], "0", methodSplit[1]});
@@ -722,8 +726,6 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 		
 		MethodVisitor visitor = new MethodVisitor();
 		cu.accept(visitor);
-		
-		DesignFlawDetector detector = new DesignFlawDetector();
         
 
 		for (MethodDeclaration md : visitor.getMethods()) {
