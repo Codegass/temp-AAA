@@ -493,7 +493,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 					NormalAnnotation na = (NormalAnnotation) node;
 					List<MemberValuePair> values = na.values();
 					for (MemberValuePair v : values) {
-						if (v.getName().toString().equals("expected") || v.getName().toString().contains("expectedExceptions")) {
+						if (v.getName().toString().contains("expected")) {
 							String lineNumberRangeEE = getLineNumberRange(cu, na);
 							String qualifiedName = v.getValue().resolveTypeBinding().getQualifiedName();
 							visited.add(getSpace(level) + "@EXPECTED " + qualifiedName + "#" + lineNumberRangeEE);
@@ -560,6 +560,8 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.mockito") && mi.resolveMethodBinding().getMethodDeclaration().getName().contains("verify")) {
 			return true;
 		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.easymock") && mi.resolveMethodBinding().getMethodDeclaration().getName().contains("verify")) {
+			return true;
+		} else if (mi.resolveMethodBinding().getDeclaringClass().getQualifiedName().startsWith("org.testng")) {
 			return true;
 		}
 

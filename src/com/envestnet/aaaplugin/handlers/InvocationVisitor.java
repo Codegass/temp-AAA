@@ -136,7 +136,7 @@ public class InvocationVisitor extends ASTVisitor {
 		if (node.getTypeName().toString().equals("Test")) {
 			List<MemberValuePair> values = node.values();
 			for (MemberValuePair v : values) {
-				if (v.getName().toString().equals("expected")) {
+				if (v.getName().toString().contains("expected")) {
 					methods.add(node);
 				}
 			}
