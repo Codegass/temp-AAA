@@ -493,7 +493,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 					NormalAnnotation na = (NormalAnnotation) node;
 					List<MemberValuePair> values = na.values();
 					for (MemberValuePair v : values) {
-						if (v.getName().toString().equals("expected")) {
+						if (v.getName().toString().equals("expected") || v.getName().toString().contains("expectedExceptions")) {
 							String lineNumberRangeEE = getLineNumberRange(cu, na);
 							String qualifiedName = v.getValue().resolveTypeBinding().getQualifiedName();
 							visited.add(getSpace(level) + "@EXPECTED " + qualifiedName + "#" + lineNumberRangeEE);
