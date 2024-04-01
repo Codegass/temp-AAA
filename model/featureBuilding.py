@@ -100,6 +100,10 @@ class FeatureBuilding():
             result_df["assert_distance"] = self.ad.getAssertDistanceList(df["lineNumber"].tolist(), df["AAA(0,1,2)"].tolist(), result_df["level"].tolist())
 
             result_df = pd.concat([result_df, pd.DataFrame(self.st.getStatementTypeDict(df["potentialTargetQualifiedName"].tolist()))], axis=1)
+            
+            # after checking the result
+            result_df = self.after_checking(df, result_df, self.projectRoot)
+            
             result_df.to_csv(csv.replace("parsed", "feature"), index=False)
 
     def calculate_level(self, string):
@@ -115,6 +119,51 @@ class FeatureBuilding():
             else:
                 break
         return space_count // 5
+    
+    def after_checking(self, input_df: pd.DataFrame, result_df: pd.DataFrame, projectRoot: str) -> pd.DataFrame:
+        '''
+        Ensure the lengths of the two DataFrames are consistent.
+        '''
+        # If the number of rows is the same, return result_df directly
+        if len(input_df) == len(result_df):
+            return result_df
+        
+        # First, reset the index of both dfs to ensure continuity, facilitating subsequent operations
+        input_df = input_df.reset_index(drop=True)
+        result_df = result_df.reset_index(drop=True)
+
+        # Rename the AAA(0,1,2) column in input_df to AAA for consistency with result_df
+        input_df = input_df.rename(columns={'AAA(0,1,2)': 'AAA'})
+
+        i = 0  # Set initial index
+        while i < len(input_df) and len(result_df) < len(input_df):
+            # Compare the value of potentialTargetQualifiedName at the same position in both DataFrames
+            if i >= len(result_df) or input_df.at[i, 'potentialTargetQualifiedName'] != result_df.at[i, 'potentialTargetQualifiedName']:
+                # If they do not match, copy the missing row from input_df to the corresponding position in result_df
+                # Including specific columns
+                row_to_insert = {
+                    'testPackage': input_df.at[i, 'testPackage'],
+                    'testClassName': input_df.at[i, 'testClassName'],
+                    'testMethodName': input_df.at[i, 'testMethodName'],
+                    'potentialTargetQualifiedName': input_df.at[i, 'potentialTargetQualifiedName'], 
+                    'AAA': input_df.at[i, 'AAA'], 
+                    'lineNumber': input_df.at[i, 'lineNumber']
+                }
+                # Create a DataFrame with only the target columns
+                row_df = pd.DataFrame([row_to_insert], index=[i])
+                result_df = pd.concat([result_df.iloc[:i], row_df, result_df.iloc[i:]]).reset_index(drop=True)
+            i += 1  # Move to the next index if matched or after insertion
+
+        try:
+            with open(os.path.join(projectRoot,"AAA","after_checking.txt"), "a") as f:
+                # record the testclass name and test method name
+                f.write("feature building\n")
+                f.write(f"{result_df.at[0, 'testClassName']} {result_df.at[0, 'testMethodName']}\n")
+        except:
+            pass
+
+        return result_df
+
 
 if __name__ == "__main__":
     # Calculate the excution time
