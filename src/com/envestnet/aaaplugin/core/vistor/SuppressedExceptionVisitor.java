@@ -2,8 +2,6 @@ package com.envestnet.aaaplugin.core.vistor;
 
 import org.eclipse.jdt.core.dom.*;
 
-import java.beans.Expression;
-//import java.beans.Expression;
 import java.util.ArrayList;
 import java.util.List;
 
