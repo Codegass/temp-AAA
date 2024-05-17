@@ -46,6 +46,11 @@ def after_checking(input_df: pd.DataFrame, result_df: pd.DataFrame, projectRoot:
                 row_df = pd.DataFrame([row_to_insert], index=[i])
                 result_df = pd.concat([result_df.iloc[:i], row_df, result_df.iloc[i:]]).reset_index(drop=True)
             i += 1  # Move to the next index if matched or after insertion
+
+        # Check if any string in the potentialTargetQualifiedName column contains @EXPECTED
+        result_df['AAA'] = result_df.apply(
+            lambda row: 2 if '@EXPECTED' in row['potentialTargetQualifiedName'] else row['AAA'], axis=1
+        )
         try:
             with open(os.path.join(projectRoot,"AAA","after_checking.txt"), "a") as f:
                 # record the testclass name and test method name
