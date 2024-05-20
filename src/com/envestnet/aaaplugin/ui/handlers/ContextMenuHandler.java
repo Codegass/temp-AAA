@@ -1,4 +1,4 @@
-package com.envestnet.aaaplugin.handlers;
+package com.envestnet.aaaplugin.ui.handlers;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -17,11 +17,18 @@ import com.envestnet.aaaplugin.core.data.DesignFlaw;
 import com.envestnet.aaaplugin.core.data.ReportGenerator;
 import com.envestnet.aaaplugin.core.detector.DesignFlawDetector;
 import com.envestnet.aaaplugin.core.detector.AntiPatternDetector;
-import com.envestnet.aaaplugin.core.mltagging.MachineLearningProcessing;
+import com.envestnet.aaaplugin.core.vistor.InvocationVisitor;
+import com.envestnet.aaaplugin.core.vistor.MethodVisitor;
+import com.envestnet.aaaplugin.core.vistor.GenericMethodVisitor;
+
+import com.envestnet.aaaplugin.ml.mltagging.MachineLearningProcessing;
+
 import com.envestnet.aaaplugin.util.FileUtils;
 import com.envestnet.aaaplugin.util.ProjectScanner;
 import com.envestnet.aaaplugin.util.TestDetector;
-import com.envestnet.aaaplugin.view.ResultView;
+
+import com.envestnet.aaaplugin.ui.view.ResultView;
+
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
@@ -263,7 +270,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 										IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 										
 										// Open or activate the ResultView
-										ResultView resultView = (ResultView) page.showView("com.envestnet.aaaplugin.view.ResultView");  // Adjust the ID to your actual view ID
+										ResultView resultView = (ResultView) page.showView("com.envestnet.aaaplugin.ui.view.ResultView");  // view ID
 										
 										// Update the view
 										List<String> projectRoots = ProjectScanner.scanWorkspaceForProjects();

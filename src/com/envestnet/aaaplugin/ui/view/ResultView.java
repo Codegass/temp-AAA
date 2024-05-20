@@ -1,4 +1,4 @@
-package com.envestnet.aaaplugin.view;
+package com.envestnet.aaaplugin.ui.view;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

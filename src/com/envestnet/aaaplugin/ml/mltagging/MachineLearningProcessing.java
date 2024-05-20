@@ -1,4 +1,4 @@
-package com.envestnet.aaaplugin.core.mltagging;
+package com.envestnet.aaaplugin.ml.mltagging;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;

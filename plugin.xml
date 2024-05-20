@@ -5,11 +5,11 @@
    <extension
          point="org.eclipse.ui.commands">
 
-      <command
-            categoryId="aaaplugin.commands.category"
-            name="Sample Command"
-            id="aaaplugin.commands.sampleCommand">
-      </command>
+<!--      <command-->
+<!--            categoryId="aaaplugin.commands.category"-->
+<!--            name="Sample Command"-->
+<!--            id="aaaplugin.commands.sampleCommand">-->
+<!--      </command>-->
       
       <command
 	        categoryId="aaaplugin.commands.category"
@@ -20,26 +20,26 @@
    </extension>
    <extension
          point="org.eclipse.ui.handlers">
-      <handler
-            class="com.envestnet.aaaplugin.handlers.SampleHandler"
-            commandId="aaaplugin.commands.sampleCommand">
-      </handler>
+<!--      <handler-->
+<!--            class="com.envestnet.aaaplugin.handlers.SampleHandler"-->
+<!--            commandId="aaaplugin.commands.sampleCommand">-->
+<!--      </handler>-->
       
       <handler
-            class="com.envestnet.aaaplugin.handlers.ContextMenuHandler"
+            class="com.envestnet.aaaplugin.ui.handlers.ContextMenuHandler"
             commandId="aaaplugin.commands.contextMenuCommand">
    	  </handler>
    </extension>
    
-   <extension
-         point="org.eclipse.ui.bindings">
-      <key
-            commandId="aaaplugin.commands.sampleCommand"
-            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
-            contextId="org.eclipse.ui.contexts.window"
-            sequence="M1+6">
-      </key>
-   </extension>
+<!--   <extension-->
+<!--         point="org.eclipse.ui.bindings">-->
+<!--      <key-->
+<!--            commandId="aaaplugin.commands.sampleCommand"-->
+<!--            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"-->
+<!--            contextId="org.eclipse.ui.contexts.window"-->
+<!--            sequence="M1+6">-->
+<!--      </key>-->
+<!--   </extension>-->
    
    <extension point="org.eclipse.ui.popupMenus">
      <objectContribution
@@ -49,7 +49,7 @@
 	      <action
 	         label="AAA Analyzer"
 	         tooltip="Start AAA Analyzing"
-	         class="com.envestnet.aaaplugin.handlers.ContextMenuHandler"
+	         class="com.envestnet.aaaplugin.ui.handlers.ContextMenuHandler"
 	         menubarPath="additions"
 	         icon="icons/aaa.png" 
 	         id="aaaplugin.menus.contextCommand">
@@ -63,8 +63,8 @@
 	        name="AAA Analysis Results"
 	        icon="icons/aaa.png"
 	        category="org.eclipse.ui"
-	        class="com.envestnet.aaaplugin.view.ResultView"
-	        id="com.envestnet.aaaplugin.view.ResultView">
+	        class="com.envestnet.aaaplugin.ui.view.ResultView"
+	        id="com.envestnet.aaaplugin.ui.view.ResultView">
 	  </view>
 	</extension>
 

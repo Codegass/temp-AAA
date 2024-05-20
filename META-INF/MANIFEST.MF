@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: aaaplugin
 Bundle-SymbolicName: aaaanalyzer;singleton:=true
 Bundle-Version: 1.0.0.qualifier
-Export-Package: com.envestnet.aaaplugin.handlers,
+Export-Package: com.envestnet.aaaplugin.ui.handlers,
  com.envestnet.aaaplugin.util
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.resources;bundle-version="3.13.800",
