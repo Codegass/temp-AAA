@@ -1,6 +1,10 @@
 package com.envestnet.aaaplugin.util;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +38,26 @@ public class FileUtils {
         }
 
         return csvFiles;
+    }
+
+    public static String getGitCommitId(String projectRootPath) {
+        String gitCommitId = "nogitinfo"; // Default value
+        try {
+            Path path = Paths.get(projectRootPath, ".git", "logs", "HEAD");
+            if (Files.exists(path)) {
+                List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+                if (!lines.isEmpty()) {
+                    String lastLine = lines.get(lines.size() - 1);
+                    String[] parts = lastLine.split(" ");
+                    if (parts.length > 1) {
+                        gitCommitId = parts[1];
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return gitCommitId;
     }
 
     public static String extractPart(String fileName) {
