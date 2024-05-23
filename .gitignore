@@ -6,3 +6,4 @@ model/xgboost.model
 /bin/
 aaa-config.yaml
 aaaanalyzer.iml
+method-invocation-rules.yaml

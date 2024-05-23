@@ -59,7 +59,7 @@ public class ResultView extends ViewPart {
     public void createPartControl(Composite parent) {
     	
     	GridLayout layout = new GridLayout();
-        layout.numColumns = 1; // 只有一列
+        layout.numColumns = 1; // Only one column
         parent.setLayout(layout);
         
         searchText = new Text(parent, SWT.BORDER | SWT.SEARCH);
