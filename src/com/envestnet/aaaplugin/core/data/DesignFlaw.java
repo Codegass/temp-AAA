@@ -21,6 +21,35 @@ public class DesignFlaw {
         this.severity = severity;
     }
 
+    // Setters
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public void setTestName(String testName) {
+        this.testName = testName;
+    }
+
+    public void setTestSuite(String testSuite) {
+        this.testSuite = testSuite;
+    }
+
+    public void setLineNumber(List<Integer> lineNumber) {
+        this.lineNumber = lineNumber;
+    }
+
+    public void setIssueType(String issueType) {
+        this.issueType = issueType;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setSeverity(String severity) {
+        this.severity = severity;
+    }
+
     // Getters
     public String getFilePath() {
         return filePath;

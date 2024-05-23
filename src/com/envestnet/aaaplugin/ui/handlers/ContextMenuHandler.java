@@ -104,7 +104,6 @@ public class ContextMenuHandler implements IObjectActionDelegate {
         if (selection instanceof IStructuredSelection) {
             IStructuredSelection structuredSelection = (IStructuredSelection) this.selection;
             Object firstElement = structuredSelection.getFirstElement();
-            reportGenerator = new ReportGenerator();
 
             if (firstElement instanceof IResource) {
                 IResource resource = (IResource) firstElement;
@@ -118,7 +117,8 @@ public class ContextMenuHandler implements IObjectActionDelegate {
                 System.out.println(outputBase);
 
                 // Read the configuration files
-                miAnalyzer = new MethodInvocationAnalyzer(rootPath + "/method-invocation-rules.yaml");
+                reportGenerator = new ReportGenerator(projectRoot + File.separator + "aaa-config.yaml");
+                miAnalyzer = new MethodInvocationAnalyzer(projectRoot + File.separator + "method-invocation-rules.yaml");
 
                 Job aaaAnalysisJob = new Job("AAA Analysis") {
                     @Override

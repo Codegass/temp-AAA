@@ -1,5 +1,8 @@
 package com.envestnet.aaaplugin.core.data;
 
+import com.envestnet.aaaplugin.util.config.IssueTypeConfigReader;
+import com.envestnet.aaaplugin.util.config.IssueType;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.FileWriter;
@@ -13,17 +16,30 @@ public class ReportGenerator {
     private ProjectStats projectStats;
     private Map<String, List<AntiPattern>> antiPatterns = new HashMap<>();
     private Map<String, List<DesignFlaw>> designFlaws = new HashMap<>();
+    private IssueTypeConfigReader configReader;
+
+    public ReportGenerator(String configPath) {
+        configReader = new IssueTypeConfigReader(configPath);
+    }
 
     public void setProjectStats(ProjectStats projectStats) {
         this.projectStats = projectStats;
     }
 
     public void addAntiPattern(AntiPattern antiPattern) {
-        antiPatterns.computeIfAbsent(antiPattern.getIssueType(), k -> new ArrayList<>()).add(antiPattern);
+        IssueType issueType = configReader.getIssueType(antiPattern.getIssueType());
+        if (issueType != null && issueType.isDetect()) {
+            antiPattern.setSeverity(issueType.getSeverity());
+            antiPatterns.computeIfAbsent(antiPattern.getIssueType(), k -> new ArrayList<>()).add(antiPattern);
+        }
     }
 
     public void addDesignFlaw(DesignFlaw designFlaw) {
-        designFlaws.computeIfAbsent(designFlaw.getIssueType(), k -> new ArrayList<>()).add(designFlaw);
+        IssueType issueType = configReader.getIssueType(designFlaw.getIssueType());
+        if (issueType != null && issueType.isDetect()) {
+            designFlaw.setSeverity(issueType.getSeverity());
+            designFlaws.computeIfAbsent(designFlaw.getIssueType(), k -> new ArrayList<>()).add(designFlaw);
+        }
     }
     
     public void checkDefault() {
@@ -86,16 +102,16 @@ public class ReportGenerator {
     }
 
     // main method for testing
-    public static void main(String[] args) {
-        ReportGenerator generator = new ReportGenerator();
-        // Set project stats and add anti-patterns and design flaws
-        List<Integer> lineNumbers = new ArrayList<>();
-        lineNumbers.add(1);
-        generator.addAntiPattern(new AntiPattern("sourcefilePath", "methodName",
-                "classname", lineNumbers,
-                "Missing Assert", "description", "severity"));
-
-        // Finally, generate the report
-        generator.generateReport("results.json");
-    }
+//    public static void main(String[] args) {
+//        ReportGenerator generator = new ReportGenerator();
+//        // Set project stats and add anti-patterns and design flaws
+//        List<Integer> lineNumbers = new ArrayList<>();
+//        lineNumbers.add(1);
+//        generator.addAntiPattern(new AntiPattern("sourcefilePath", "methodName",
+//                "classname", lineNumbers,
+//                "Missing Assert", "description", "severity"));
+//
+//        // Finally, generate the report
+//        generator.generateReport("results.json");
+//    }
 }
