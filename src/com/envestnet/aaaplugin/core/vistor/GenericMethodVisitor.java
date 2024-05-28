@@ -17,12 +17,6 @@ public class GenericMethodVisitor extends ASTVisitor {
 	public GenericMethodVisitor(IMethodBinding binding) {
 		this.binding = binding;
 		itbs = binding.getParameterTypes();
-		//System.out.println(binding.getName());
-		/*
-		 * for (ITypeBinding itb : itbs) { System.out.println("binding itb name: " +
-		 * itb.getBinaryName()); System.out.println("binding generic?: " +
-		 * itb.isGenericType()); }
-		 */
 	}
 
 	@Override

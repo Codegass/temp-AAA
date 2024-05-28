@@ -1,4 +1,4 @@
-package com.envestnet.aaaplugin.util.config;
+package com.envestnet.aaaplugin.util.config.data;
 
 public class IssueType {
     private String severity;

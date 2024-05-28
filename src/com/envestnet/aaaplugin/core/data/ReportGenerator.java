@@ -1,7 +1,7 @@
 package com.envestnet.aaaplugin.core.data;
 
 import com.envestnet.aaaplugin.util.config.IssueTypeConfigReader;
-import com.envestnet.aaaplugin.util.config.IssueType;
+import com.envestnet.aaaplugin.util.config.data.IssueType;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

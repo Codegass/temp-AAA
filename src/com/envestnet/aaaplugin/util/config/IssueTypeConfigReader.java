@@ -1,5 +1,6 @@
 package com.envestnet.aaaplugin.util.config;
 
+import com.envestnet.aaaplugin.util.config.data.IssueType;
 import org.yaml.snakeyaml.Yaml;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
