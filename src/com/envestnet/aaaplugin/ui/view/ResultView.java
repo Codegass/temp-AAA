@@ -37,12 +37,8 @@ import org.eclipse.core.filesystem.IFileStore;
 import java.io.File;
 import java.io.FileReader;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
-import java.util.List;
 
 public class ResultView extends ViewPart {
 
@@ -416,46 +412,52 @@ public class ResultView extends ViewPart {
         public Image getColumnImage(Object element, int columnIndex) {
             return null; // We aren't returning any images for our columns in this example.
         }
-        
+
         private String formatLineNumber(String lineNumberStr) {
             try {
-                // Parse the lineNumberStr to get a list of integers
+                // 解析行号并排序
                 String[] parts = lineNumberStr.replace("[", "").replace("]", "").split(",");
                 List<Integer> lineNumbers = new ArrayList<>();
                 for (String part : parts) {
                     lineNumbers.add(Integer.parseInt(part.trim()));
                 }
+                Collections.sort(lineNumbers); // 对行号进行排序
 
-                // Ensure that the length of lineNumbers is even
-                if (lineNumbers.size() % 2 != 0) {
-                    throw new IllegalArgumentException("Invalid line number pairs.");
-                }
+                // 合并行号
+                List<int[]> mergedIntervals = new ArrayList<>();
+                int start = lineNumbers.get(0), end = lineNumbers.get(0);
 
-                // Convert the list of integers to the desired format
-                StringBuilder formatted = new StringBuilder();
-                for (int i = 0; i < lineNumbers.size(); i += 2) {
-                    int start = lineNumbers.get(i);
-                    int end = lineNumbers.get(i + 1);
-                    if (start == end) {
-                        formatted.append(start);
+                for (int i = 1; i < lineNumbers.size(); i++) {
+                    if (lineNumbers.get(i) == end || lineNumbers.get(i) == end + 1) {
+                        end = lineNumbers.get(i); // 合并连续或相同的行号
                     } else {
-                        formatted.append(start).append("-").append(end);
-                    }
-                    if (i < lineNumbers.size() - 2) {
-                        formatted.append(", ");
+                        mergedIntervals.add(new int[]{start, end});
+                        start = end = lineNumbers.get(i);
                     }
                 }
+                mergedIntervals.add(new int[]{start, end}); // 添加最后一个区间
+
+                // 格式化输出
+                StringBuilder formatted = new StringBuilder();
+                for (int[] interval : mergedIntervals) {
+                    if (interval[0] == interval[1]) {
+                        formatted.append(interval[0]).append(", ");
+                    } else {
+                        formatted.append(interval[0]).append("-").append(interval[1]).append(", ");
+                    }
+                }
+
+                // 移除末尾多余的逗号和空格
+                if (formatted.length() > 2) {
+                    formatted.setLength(formatted.length() - 2);
+                }
+
                 return formatted.toString();
             } catch (Exception e) {
-                // Log the error for debugging
                 System.err.println("Error formatting line numbers: " + e.getMessage());
-                // Return the original string if there's an error
-                return lineNumberStr;
+                return lineNumberStr; // 发生错误时返回原始字符串
             }
         }
-
-
-
 
     }
     

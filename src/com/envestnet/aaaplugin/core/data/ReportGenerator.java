@@ -44,7 +44,7 @@ public class ReportGenerator {
     
     public void checkDefault() {
         String[] antiPatternTypes = {"multipleAAA", "missingAssert", "assertPrecondition"};
-        String[] designFlawTypes = {"suppressedException", "arrangeAndQuit", "ObscureAssert"};
+        String[] designFlawTypes = {"suppressedException", "arrangeAndQuit", "obscureAssert"};
 
         for (String type : antiPatternTypes) {
             antiPatterns.putIfAbsent(type, new ArrayList<>());
@@ -101,17 +101,4 @@ public class ReportGenerator {
         }
     }
 
-    // main method for testing
-//    public static void main(String[] args) {
-//        ReportGenerator generator = new ReportGenerator();
-//        // Set project stats and add anti-patterns and design flaws
-//        List<Integer> lineNumbers = new ArrayList<>();
-//        lineNumbers.add(1);
-//        generator.addAntiPattern(new AntiPattern("sourcefilePath", "methodName",
-//                "classname", lineNumbers,
-//                "Missing Assert", "description", "severity"));
-//
-//        // Finally, generate the report
-//        generator.generateReport("results.json");
-//    }
 }

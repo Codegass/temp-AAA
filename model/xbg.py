@@ -97,7 +97,7 @@ def model_runner(projectRoot:str, model_file_path:str):
         data = after_checking(pd.read_csv(csv_file_path.replace("feature","parsed")), data, projectRoot)
 
         # Save the result to the csv file
-        data.to_csv(csv_file_path, index=False)
+        data.to_csv(csv_file_path, index=False, quoting=pd.CSV_QUOTE_NONNUMERIC)
 
 if __name__ == "__main__":
     main()

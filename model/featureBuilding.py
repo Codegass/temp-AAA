@@ -71,7 +71,7 @@ class FeatureBuilding():
                 result_df["assert_distance"] = 0
                 # result_df["level"] = 0
                 result_df = pd.concat([result_df, pd.DataFrame(self.st.getStatementTypeDict(df["potentialTargetQualifiedName"].tolist()))], axis=1)
-                result_df.to_csv(csv.replace("parsed", "feature"), index=False)
+                result_df.to_csv(csv.replace("parsed", "feature"), index=False, quoting=pd.CSV_QUOTE_NONNUMERIC)
                 continue
 
             # handle the df AAA(0,1,2) column are all 2 or 0
@@ -86,7 +86,7 @@ class FeatureBuilding():
                 result_df["name_similarity"]= 0
                 result_df["assert_distance"] = 0
                 result_df = pd.concat([result_df, pd.DataFrame(self.st.getStatementTypeDict(df["potentialTargetQualifiedName"].tolist()))], axis=1)
-                result_df.to_csv(csv.replace("parsed", "feature"), index=False)
+                result_df.to_csv(csv.replace("parsed", "feature"), index=False, quoting=pd.CSV_QUOTE_NONNUMERIC)
                 continue
 
             result_df["testPackage"] = df["testPackage"]
@@ -104,7 +104,7 @@ class FeatureBuilding():
             # after checking the result
             result_df = self.after_checking(df, result_df, self.projectRoot)
             
-            result_df.to_csv(csv.replace("parsed", "feature"), index=False)
+            result_df.to_csv(csv.replace("parsed", "feature"), index=False, quoting=pd.CSV_QUOTE_NONNUMERIC)
 
     def calculate_level(self, string):
         '''

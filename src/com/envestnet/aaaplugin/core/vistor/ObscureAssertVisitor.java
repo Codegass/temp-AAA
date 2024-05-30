@@ -38,7 +38,7 @@ public class ObscureAssertVisitor extends ASTVisitor {
             currentComplexity++; // Increment complexity for control flow structures
             maxComplexityInCurrentBlock = Math.max(maxComplexityInCurrentBlock, currentComplexity);
             complexityStack.push(new ArrayList<>());
-            recordLineNumber(node);
+            recordLineNumber(node, true);
         }
     }
 
@@ -70,8 +70,9 @@ public class ObscureAssertVisitor extends ASTVisitor {
 
     @Override
     public boolean visit(MethodInvocation node) {
-        if (maxComplexityInCurrentBlock >= 2 && isJUnitAssertion(node)) {
+        if (maxComplexityInCurrentBlock >= 2 && isAssertion(node)) {
             obscureAssertFound = true;
+            recordLineNumber(node, false);
         }
         return super.visit(node);
     }
@@ -81,7 +82,7 @@ public class ObscureAssertVisitor extends ASTVisitor {
                 node instanceof WhileStatement || node instanceof SwitchStatement; // Already considers SwitchStatement
     }
 
-    private boolean isJUnitAssertion(MethodInvocation node) {
+    private boolean isAssertion(MethodInvocation node) {
         IMethodBinding binding = node.resolveMethodBinding();
         if (binding == null) return false;
         ITypeBinding declaringClass = binding.getDeclaringClass();
@@ -90,17 +91,24 @@ public class ObscureAssertVisitor extends ASTVisitor {
             return className.startsWith("org.junit") ||
                     className.startsWith("org.hamcrest") ||
                     className.startsWith("org.testng") ||
-                    className.startsWith("org.assertj");
+                    className.startsWith("org.assertj") ||
+                    className.startsWith("com.google.common.truth");
         }
         return false;
     }
 
-    private void recordLineNumber(ASTNode node) {
+    private void recordLineNumber(ASTNode node, boolean isControlFlowStatement) {
         int lineNumber = ((CompilationUnit) node.getRoot()).getLineNumber(node.getStartPosition());
-        if (!complexityStack.isEmpty()) {
-            complexityStack.peek().add(lineNumber);
+        if (isControlFlowStatement) {
+            if (!complexityStack.isEmpty()) {
+                complexityStack.peek().add(lineNumber);
+                complexityStack.peek().add(lineNumber);
+            }
         } else {
+            // if not control flow statement, then we record both start position and end position
+            int endLineNumber = ((CompilationUnit) node.getRoot()).getLineNumber(node.getStartPosition() + node.getLength() - 1);
             recordedLineNumbers.add(lineNumber);
+            recordedLineNumbers.add(endLineNumber);
         }
     }
 

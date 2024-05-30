@@ -36,20 +36,50 @@ public class AntiPatternDetector {
             Map<String, Integer> actionFunctionNameCounts = new HashMap<>(); // Track counts of each action function name
             
             boolean actionExist = false; // Track the AAA value
-            
+
+            // Convert columns to lists for processing
+            List<Integer> aaaColumn = new ArrayList<>();
+            List<String> functionNameColumn = new ArrayList<>();
+            List<String> lineNumberColumn = new ArrayList<>();
+            List<String> qualifiedNameColumn = new ArrayList<>();
+            List<Integer> levelColumn = new ArrayList<>();
+
             for (String[] record : records) {
-                int currentAAA = Integer.parseInt(record[4]); // AAA column
+                aaaColumn.add(Integer.parseInt(record[4]));
+                functionNameColumn.add(record[2]);
+                lineNumberColumn.add(record[5]);
+                qualifiedNameColumn.add(record[3]);
+                levelColumn.add(Integer.parseInt(record[8]));
+            }
+
+            // process the expanded method and replace with level 0 method for the submethods to keep line number simple
+            int lastValidIndex = -1;
+            for (int i = 0; i < levelColumn.size(); i++) {
+                if (levelColumn.get(i) > 0) {
+                    if (lastValidIndex != -1) {
+                        aaaColumn.set(i, aaaColumn.get(lastValidIndex));
+                        functionNameColumn.set(i, functionNameColumn.get(lastValidIndex));
+                        lineNumberColumn.set(i, lineNumberColumn.get(lastValidIndex));
+                        qualifiedNameColumn.set(i, qualifiedNameColumn.get(lastValidIndex));
+                    }
+                    lastValidIndex = i;
+                }
+            }
+
+            // Process the lists
+            for (int i = 0; i < records.size(); i++) {
+                int currentAAA = aaaColumn.get(i);
                 if (currentAAA == 0) continue; // Ignoring Arrangement
-                
-                String functionName = record[3]; // Function invocation name TODO:Check Action name are the same
-                List<Integer> lineNumbers = parseLineNumbers(record[5]);
+
+                String functionName = functionNameColumn.get(i);
+                List<Integer> lineNumbers = parseLineNumbers(lineNumberColumn.get(i));
                 if (currentAAA == 1) { // Action
-                	actionExist = true;
+                    actionExist = true;
                     actionFunctionNameCounts.put(functionName, actionFunctionNameCounts.getOrDefault(functionName, 0) + 1);
                 } else if (currentAAA == 2) { // Assertion
                     missingAssert = false;
                     if (!actionExist) {
-                    	lineNumberAssertPrecondition.addAll(lineNumbers);
+                        lineNumberAssertPrecondition.addAll(lineNumbers);
                     }
                 }
             }
@@ -61,19 +91,18 @@ public class AntiPatternDetector {
                     break;
                 }
             }
-            
-            //BUG! This add all the line number to multiple AAA and missing assert case which does not remove the expanded invocations.
+
             // Populate line numbers for multipleAAA and missingAssert
             if (multipleAAA || missingAssert) {
-                for (String[] record : records) {
-                    List<Integer> lineNumbers = parseLineNumbers(record[5]);
-                    String qualifiedName = record[4];
+                for (int i = 0; i < records.size(); i++) {
+                    List<Integer> lineNumbers = parseLineNumbers(lineNumberColumn.get(i));
+                    String qualifiedName = qualifiedNameColumn.get(i);
 
                     // Check if the qualifiedName starts with 5 spaces(expanded method), if so skip the line number adding
                     if (qualifiedName.startsWith("     ")) {
                         continue; // Skip to the next iteration of the loop
                     }
-                    
+
                     if (multipleAAA) {
                         lineNumberMultipleAAA.addAll(lineNumbers);
                     }
