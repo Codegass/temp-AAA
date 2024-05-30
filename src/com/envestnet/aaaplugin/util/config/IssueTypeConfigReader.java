@@ -14,7 +14,7 @@ public class IssueTypeConfigReader {
     private Map<String, IssueType> issueTypes;
     private String[] excludedTestsPath; // disabled for now
 
-    public IssueTypeConfigReader(String projectRootPath) {
+    public IssueTypeConfigReader(String configPath) {
         // Initialize issueTypes with default values
         issueTypes = new HashMap<>();
         issueTypes.put("Multiple-AAA", new IssueType("Minor", true));
@@ -28,9 +28,9 @@ public class IssueTypeConfigReader {
         FileInputStream inputStream = null;
 
         try {
-            inputStream = new FileInputStream(projectRootPath + "/aaa-config.yaml");
+            inputStream = new FileInputStream(configPath);
 
-            System.out.println("Reading config file from " + projectRootPath + "/aaa-config.yaml");
+            System.out.println("Reading config file from " + configPath);
             Map<String, Object> configMap = yaml.load(inputStream);
 
             // Overwrite defaults if values are present in YAML

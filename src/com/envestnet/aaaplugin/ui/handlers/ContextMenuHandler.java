@@ -684,7 +684,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
                         String description = "Obscure Assert ";
                         //add design flaw to report
                         reportGenerator.addDesignFlaw(new DesignFlaw(fileName.getAbsolutePath(), methodName,
-                                className, linenumbers, "ObscureAssert",
+                                className, linenumbers, "obscureAssert",
                                 description, severity));
                     } else if (designFlawDetector.detectSuppressedException(md)) {
                         List<Integer> linenumbers = designFlawDetector.getLineNumbers();

@@ -29,7 +29,7 @@ public class PackageSupportConfigReader {
             Yaml yaml = new Yaml();
             this.config = yaml.load(inputStream);
             validateConfig();
-            processConfig(config);
+            processConfig();
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Configuration file not found: " + filePath, e);
         } catch (YAMLException e) {

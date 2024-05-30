@@ -22,14 +22,10 @@ public class MethodInvocationRule {
      * @return true if it matches any method rule but not excluded by any exclude rule.
      */
     public boolean matches(String qualifiedName, String methodName) {
-        // Check if qualifiedName matches any of the package patterns
-        if (packagePatterns.stream().anyMatch(pattern -> pattern.matcher(qualifiedName).matches())) {
-            // Ensure it does not match any of the exclude rules
-            if (excludeRules.stream().noneMatch(rule -> rule.matches(qualifiedName, methodName))) {
-                // Check if it matches any of the method rules
-                return methodRules.stream().anyMatch(rule -> rule.matches(qualifiedName, methodName));
-            }
-        }
-        return false;
+    	boolean packageMatch = packagePatterns.stream().anyMatch(pattern -> pattern.matcher(qualifiedName).find());
+        boolean methodMatch = methodRules.stream().anyMatch(rule -> rule.matches(qualifiedName, methodName));
+        boolean isExcluded = excludeRules.stream().anyMatch(rule -> rule.matches(qualifiedName, methodName));
+        
+        return (packageMatch && !isExcluded) || methodMatch;
     }
 }
