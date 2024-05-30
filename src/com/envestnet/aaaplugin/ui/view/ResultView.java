@@ -7,6 +7,9 @@ import com.google.gson.JsonParser;
 
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.MenuManager;
+import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.viewers.*;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.source.Annotation;
@@ -17,6 +20,7 @@ import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Text;
@@ -40,16 +44,22 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import com.envestnet.aaaplugin.util.config.SuppressedCaseManager;
+import com.envestnet.aaaplugin.util.config.data.SuppressedCase;
+import static com.envestnet.aaaplugin.util.Formater.formatLineNumber;
+
 public class ResultView extends ViewPart {
 
     private TreeViewer viewer;
     private Text searchText;
+    private SuppressedCaseManager suppressedCaseManager;
     
     private int currentHighlightIndex = 0;
-    
+    private List<SuppressedCase> suppressedCases = new ArrayList<>();
+
     private static final int ASCENDING = 0;
     private static final int DESCENDING = 1;
-    
+
 
     @Override
     public void createPartControl(Composite parent) {
@@ -68,6 +78,7 @@ public class ResultView extends ViewPart {
         tree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         tree.setHeaderVisible(true);
         tree.setLinesVisible(true);
+        hookContextMenu();
 
         String[] titles = { "Severity", "Issue Type", "Test Class", "Test Method", "Line Number", "Description", "File Path" };
         int[] widths = {100, 100, 100, 100, 70, 200, 250}; // Specify the width of each column here
@@ -103,7 +114,29 @@ public class ResultView extends ViewPart {
             }
         });
     }
-    
+
+    // popup menu for the view
+    private void hookContextMenu() {
+        MenuManager menuMgr = new MenuManager("#PopupMenu");
+        menuMgr.setRemoveAllWhenShown(true);
+        menuMgr.addMenuListener(manager -> {
+            if (viewer.getSelection().isEmpty()) {
+                return;
+            }
+            if (viewer.getSelection() instanceof IStructuredSelection) {
+                Action action = new Action("Ignore This Issue") {
+                    @Override
+                    public void run() {
+                        handleIgnoreCase();
+                    }
+                };
+                manager.add(action);
+            }
+        });
+        Menu menu = menuMgr.createContextMenu(viewer.getControl());
+        viewer.getControl().setMenu(menu);
+    }
+
     private void handleDoubleClick(DoubleClickEvent event) {
     	System.out.println("Double click detected!");
         IStructuredSelection selection = (IStructuredSelection) event.getSelection();
@@ -118,7 +151,40 @@ public class ResultView extends ViewPart {
             System.out.println("Selected item is not an ErrorItem. It is: " + selectedElement.getClass().getName()); // Debug output
         }
     }
-    
+
+    private void handleIgnoreCase() {
+        IStructuredSelection selection = viewer.getStructuredSelection();
+        Object obj = selection.getFirstElement();
+        if (obj instanceof ErrorItem) {
+            ErrorItem item = (ErrorItem) obj;
+            // Create and open the input dialog
+            InputDialog dialog = new InputDialog(
+                    viewer.getControl().getShell(),
+                    "Ignore Case", // title
+                    "Please enter a reason for ignoring this case:", // dialog message
+                    "", // default input value
+                    input -> (input == null || input.trim().isEmpty()) ? "Reason cannot be empty." : null // input validator
+            );
+            if (dialog.open() == InputDialog.OK) {
+                String reason = dialog.getValue();
+                suppressedCaseManager.addSuppressedCase(item.testSuite, item.getTestName(), item.getIssueType(),
+                        formatLineNumber(item.getLineNumber()), reason, item.getFilePath());
+                suppressedCaseManager.saveSuppressedCases();
+                updateIgnoreCases();
+            }
+        }
+    }
+
+    private void updateIgnoreCases() {
+        loadSuppressedCases();
+        viewer.refresh();
+    }
+
+private void loadSuppressedCases() {
+        suppressedCases = suppressedCaseManager.getSuppressedCases();
+    }
+
+
     /*
      * Highlight in each sections
      */
@@ -270,8 +336,9 @@ public class ResultView extends ViewPart {
         }
         viewer.setInput(input);
         viewer.expandAll();
+        updateIgnoreCases();
     }
-    
+
     private class ResultFilter extends ViewerFilter {
 
         private Map<String, String> searchCriteria;
@@ -342,14 +409,26 @@ public class ResultView extends ViewPart {
         }
     }
 
-
     private class ResultContentProvider implements ITreeContentProvider {
         @Override
         public Object[] getElements(Object inputElement) {
             if (inputElement instanceof List) {
-                return ((List<?>) inputElement).toArray();
+                List<?> sections = (List<?>) inputElement;
+                return sections.stream()
+                        .filter(ProjectSection.class::isInstance)
+                        .map(ProjectSection.class::cast)
+                        .flatMap(section -> section.getErrors().stream())  // Flatten the list of ErrorItems
+                        .filter(this::isNotSuppressed)                     // Filter out suppressed ErrorItems
+                        .toArray();
             }
             return new Object[0];
+        }
+
+        private boolean isNotSuppressed(ErrorItem item) {
+            return suppressedCases.stream().noneMatch(suppressed ->
+                    suppressed.getFilePath().equals(item.getFilePath()) &&
+                            suppressed.getCaseName().equals(item.getTestName()) &&
+                            suppressed.getIssueType().equals(item.getIssueType()));
         }
 
         @Override
@@ -411,52 +490,6 @@ public class ResultView extends ViewPart {
         @Override
         public Image getColumnImage(Object element, int columnIndex) {
             return null; // We aren't returning any images for our columns in this example.
-        }
-
-        private String formatLineNumber(String lineNumberStr) {
-            try {
-                // 解析行号并排序
-                String[] parts = lineNumberStr.replace("[", "").replace("]", "").split(",");
-                List<Integer> lineNumbers = new ArrayList<>();
-                for (String part : parts) {
-                    lineNumbers.add(Integer.parseInt(part.trim()));
-                }
-                Collections.sort(lineNumbers); // 对行号进行排序
-
-                // 合并行号
-                List<int[]> mergedIntervals = new ArrayList<>();
-                int start = lineNumbers.get(0), end = lineNumbers.get(0);
-
-                for (int i = 1; i < lineNumbers.size(); i++) {
-                    if (lineNumbers.get(i) == end || lineNumbers.get(i) == end + 1) {
-                        end = lineNumbers.get(i); // 合并连续或相同的行号
-                    } else {
-                        mergedIntervals.add(new int[]{start, end});
-                        start = end = lineNumbers.get(i);
-                    }
-                }
-                mergedIntervals.add(new int[]{start, end}); // 添加最后一个区间
-
-                // 格式化输出
-                StringBuilder formatted = new StringBuilder();
-                for (int[] interval : mergedIntervals) {
-                    if (interval[0] == interval[1]) {
-                        formatted.append(interval[0]).append(", ");
-                    } else {
-                        formatted.append(interval[0]).append("-").append(interval[1]).append(", ");
-                    }
-                }
-
-                // 移除末尾多余的逗号和空格
-                if (formatted.length() > 2) {
-                    formatted.setLength(formatted.length() - 2);
-                }
-
-                return formatted.toString();
-            } catch (Exception e) {
-                System.err.println("Error formatting line numbers: " + e.getMessage());
-                return lineNumberStr; // 发生错误时返回原始字符串
-            }
         }
 
     }
@@ -640,6 +673,11 @@ public class ResultView extends ViewPart {
             return UNKNOWN;  // Return a default value or throw an exception if preferred
         }
    
+    }
+
+    // config setter
+    public void setSuppressedCaseManager(SuppressedCaseManager suppressedCaseManager) {
+        this.suppressedCaseManager = suppressedCaseManager;
     }
 
 }

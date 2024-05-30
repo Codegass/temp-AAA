@@ -30,6 +30,7 @@ import com.envestnet.aaaplugin.util.TestDetector;
 
 import com.envestnet.aaaplugin.ui.view.ResultView;
 
+import com.envestnet.aaaplugin.util.config.SuppressedCaseManager;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
@@ -93,6 +94,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 
     private ReportGenerator reportGenerator;
     private MethodInvocationAnalyzer miAnalyzer;
+    private SuppressedCaseManager suppressedCaseManager;
 
     @Override
     public void setActivePart(IAction action, IWorkbenchPart targetPart) {
@@ -119,6 +121,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
                 // Read the configuration files
                 reportGenerator = new ReportGenerator(projectRoot + File.separator + "aaa-config.yaml");
                 miAnalyzer = new MethodInvocationAnalyzer(projectRoot + File.separator + "method-invocation-rules.yaml");
+                suppressedCaseManager = new SuppressedCaseManager(projectRoot + File.separator + "suppressed-cases.csv");
 
                 Job aaaAnalysisJob = new Job("AAA Analysis") {
                     @Override
@@ -279,6 +282,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 
                                         // Update the view
                                         List<String> projectRoots = ProjectScanner.scanWorkspaceForProjects();
+                                        resultView.setSuppressedCaseManager(suppressedCaseManager);
                                         resultView.updateViewFromProjects(projectRoots);
 
                                     } catch (PartInitException e) {
