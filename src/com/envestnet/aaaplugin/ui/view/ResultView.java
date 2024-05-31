@@ -220,7 +220,7 @@ public class ResultView extends ViewPart {
                 String[] header = { "Severity", "Issue Type", "Test Class", "Test Method", "Line Number", "Description", "File Path" };
                 writer.writeNext(header);
 
-                // 检查viewer的输入是否为List类型
+                // check if the input is a list of ProjectSection
                 Object input = viewer.getInput();
                 if (input instanceof List) {
                     List<?> sections = (List<?>) input;
@@ -228,7 +228,7 @@ public class ResultView extends ViewPart {
                         if (element instanceof ProjectSection) {
                             ProjectSection section = (ProjectSection) element;
                             for (ErrorItem error : section.getErrors()) {
-                                // 过滤掉被抑制的案例
+                                // filter out suppressed cases
                                 if (isNotSuppressed(error)) {
                                     String[] line = new String[]{
                                             error.getSeverity().toString(),
