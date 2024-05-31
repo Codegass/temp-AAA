@@ -4,12 +4,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.opencsv.CSVWriter;
 
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.dialogs.InputDialog;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.*;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.source.Annotation;
@@ -20,6 +22,7 @@ import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -40,6 +43,8 @@ import org.eclipse.core.filesystem.IFileStore;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -124,13 +129,33 @@ public class ResultView extends ViewPart {
                 return;
             }
             if (viewer.getSelection() instanceof IStructuredSelection) {
-                Action action = new Action("Ignore This Issue") {
+                // Create the "Ignore This Issue" action
+                Action ignoreAction = new Action("Ignore This Issue") {
                     @Override
                     public void run() {
                         handleIgnoreCase();
                     }
                 };
-                manager.add(action);
+                manager.add(ignoreAction);
+
+//                // Create the "Refresh" action
+//                Action refreshAction = new Action("Refresh") {
+//                    @Override
+//                    public void run() {
+//                        updateIgnoreCases();
+//                    }
+//                };
+//                manager.add(refreshAction);
+
+                // add "export report" action
+                Action exportAction = new Action("Export Report") {
+                    @Override
+                    public void run() {
+                        exportReport();
+                    }
+                };
+                manager.add(exportAction);
+
             }
         });
         Menu menu = menuMgr.createContextMenu(viewer.getControl());
@@ -180,8 +205,57 @@ public class ResultView extends ViewPart {
         viewer.refresh();
     }
 
-private void loadSuppressedCases() {
+    private void loadSuppressedCases() {
         suppressedCases = suppressedCaseManager.getSuppressedCases();
+    }
+
+    //TODO: consider replace with update project data fuction, it can store the result in a list
+    private void exportReport() {
+        FileDialog fileDialog = new FileDialog(viewer.getControl().getShell(), SWT.SAVE);
+        fileDialog.setFilterExtensions(new String[] { "*.csv" });
+        fileDialog.setFilterNames(new String[] { "CSV Files (*.csv)" });
+        String filePath = fileDialog.open();
+        if (filePath != null) {
+            try (CSVWriter writer = new CSVWriter(new FileWriter(filePath))) {
+                String[] header = { "Severity", "Issue Type", "Test Class", "Test Method", "Line Number", "Description", "File Path" };
+                writer.writeNext(header);
+
+                // 检查viewer的输入是否为List类型
+                Object input = viewer.getInput();
+                if (input instanceof List) {
+                    List<?> sections = (List<?>) input;
+                    for (Object element : sections) {
+                        if (element instanceof ProjectSection) {
+                            ProjectSection section = (ProjectSection) element;
+                            for (ErrorItem error : section.getErrors()) {
+                                // 过滤掉被抑制的案例
+                                if (isNotSuppressed(error)) {
+                                    String[] line = new String[]{
+                                            error.getSeverity().toString(),
+                                            error.getIssueType(),
+                                            error.getTestSuite(),
+                                            error.getTestName(),
+                                            formatLineNumber(error.getLineNumber()),
+                                            error.getDescription(),
+                                            error.getFilePath()
+                                    };
+                                    writer.writeNext(line);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                MessageDialog.openError(viewer.getControl().getShell(), "Export Error", "Failed to export report: " + e.getMessage());
+            }
+        }
+    }
+    
+    private boolean isNotSuppressed(ErrorItem item) {
+        return suppressedCases.stream().noneMatch(suppressed ->
+                suppressed.getFilePath().equals(item.getFilePath()) &&
+                        suppressed.getCaseName().equals(item.getTestName()) &&
+                        suppressed.getIssueType().equals(item.getIssueType()));
     }
 
 
