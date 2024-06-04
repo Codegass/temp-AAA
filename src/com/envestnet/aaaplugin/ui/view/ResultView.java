@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.envestnet.aaaplugin.util.config.SuppressedCaseManager;
 import com.envestnet.aaaplugin.util.config.data.SuppressedCase;
@@ -484,15 +485,13 @@ public class ResultView extends ViewPart {
     }
 
     private class ResultContentProvider implements ITreeContentProvider {
-        @Override
+    	@Override
         public Object[] getElements(Object inputElement) {
             if (inputElement instanceof List) {
                 List<?> sections = (List<?>) inputElement;
                 return sections.stream()
                         .filter(ProjectSection.class::isInstance)
                         .map(ProjectSection.class::cast)
-                        .flatMap(section -> section.getErrors().stream())  // Flatten the list of ErrorItems
-                        .filter(this::isNotSuppressed)                     // Filter out suppressed ErrorItems
                         .toArray();
             }
             return new Object[0];
@@ -508,7 +507,10 @@ public class ResultView extends ViewPart {
         @Override
         public Object[] getChildren(Object parentElement) {
             if (parentElement instanceof ProjectSection) {
-                return ((ProjectSection) parentElement).getErrors().toArray();
+                List<ErrorItem> filteredErrors = ((ProjectSection) parentElement).getErrors().stream()
+                        .filter(this::isNotSuppressed)
+                        .collect(Collectors.toList());
+                return filteredErrors.toArray();
             }
             return new Object[0];
         }
