@@ -32,7 +32,7 @@ public class SuppressedExceptionVisitor extends ASTVisitor {
         int tryLineNumber = cu.getLineNumber(tryStatement.getStartPosition());
         int catchLineNumber = cu.getLineNumber(catchClause.getStartPosition());
         int catchEndLineNumber = cu.getLineNumber(catchClause.getStartPosition() + catchClause.getLength() - 1);
-        // You might want to store these in a more structured way depending on your needs
+        
         suppressedExceptionLineNumbers.add(tryLineNumber);// this is line number pair
         suppressedExceptionLineNumbers.add(tryLineNumber); // single line will have same line number
 

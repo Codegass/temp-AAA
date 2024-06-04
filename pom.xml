@@ -22,6 +22,39 @@
     </repositories>
 
     <build>
+		
+		<pluginManagement>
+	        <plugins>
+	            <!-- Eclipse m2e lifecycle mapping -->
+	            <plugin>
+	                <groupId>org.eclipse.m2e</groupId>
+	                <artifactId>lifecycle-mapping</artifactId>
+	                <version>1.0.0</version>
+	                <configuration>
+	                    <lifecycleMappingMetadata>
+	                        <pluginExecutions>
+	                            <pluginExecution>
+	                                <pluginExecutionFilter>
+	                                    <groupId>org.eclipse.tycho</groupId>
+	                                    <artifactId>tycho-bnd-plugin</artifactId>
+	                                    <versionRange>[4.0.5,)</versionRange>
+	                                    <goals>
+	                                        <goal>process</goal>
+	                                    </goals>
+	                                </pluginExecutionFilter>
+	                                <action>
+	                                    <ignore/>
+	                                </action>
+	                            </pluginExecution>
+	                        </pluginExecutions>
+	                    </lifecycleMappingMetadata>
+	                </configuration>
+	            </plugin>
+	            <!-- Existing plugins can remain unchanged, or add new configurations here -->
+	        </plugins>
+	    </pluginManagement>
+		
+		
         <plugins>
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>
