@@ -18,13 +18,11 @@ public class SuppressedCaseManager {
     private List<SuppressedCase> suppressedCases;
     private String filePath;
 
-    public SuppressedCaseManager(String filePath) {
-        this.filePath = filePath;
+    public SuppressedCaseManager() {
         this.suppressedCases = new ArrayList<>();
-        loadSuppressedCases();
     }
 
-    private void loadSuppressedCases() {
+    public void loadSuppressedCases() {
         try (CSVReader reader = new CSVReader(new FileReader(filePath))) {
             String[] nextLine;
             reader.readNext(); // Skip header row
@@ -79,6 +77,10 @@ public class SuppressedCaseManager {
         } catch (IOException e) {
             System.err.println("Error writing to the suppressed cases file: " + e.getMessage());
         }
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 
     public List<SuppressedCase> getSuppressedCases() {

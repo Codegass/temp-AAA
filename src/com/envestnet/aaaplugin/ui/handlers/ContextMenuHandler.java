@@ -94,8 +94,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 
     private ReportGenerator reportGenerator;
     private MethodInvocationAnalyzer miAnalyzer;
-    private SuppressedCaseManager suppressedCaseManager;
-
+    
     @Override
     public void setActivePart(IAction action, IWorkbenchPart targetPart) {
         window = targetPart.getSite().getWorkbenchWindow();
@@ -121,7 +120,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
                 // Read the configuration files
                 reportGenerator = new ReportGenerator(projectRoot + File.separator + "aaa-config.yaml");
                 miAnalyzer = new MethodInvocationAnalyzer(projectRoot + File.separator + "method-invocation-rules.yaml");
-                suppressedCaseManager = new SuppressedCaseManager(projectRoot + File.separator + "suppressed-cases.csv");
+//                suppressedCaseManager = new SuppressedCaseManager(projectRoot + File.separator + "suppressed-cases.csv");
 
                 Job aaaAnalysisJob = new Job("AAA Analysis") {
                     @Override
@@ -282,7 +281,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
 
                                         // Update the view
                                         List<String> projectRoots = ProjectScanner.scanWorkspaceForProjects();
-                                        resultView.setSuppressedCaseManager(suppressedCaseManager);
+                    
                                         resultView.updateViewFromProjects(projectRoots);
 
                                     } catch (PartInitException e) {

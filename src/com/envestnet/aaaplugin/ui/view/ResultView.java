@@ -58,9 +58,10 @@ public class ResultView extends ViewPart {
 
     private TreeViewer viewer;
     private Text searchText;
-    private SuppressedCaseManager suppressedCaseManager;
+
     
     private int currentHighlightIndex = 0;
+    private SuppressedCaseManager suppressedCaseManager = new SuppressedCaseManager();
     private List<SuppressedCase> suppressedCases = new ArrayList<>();
 
     private static final int ASCENDING = 0;
@@ -218,7 +219,7 @@ public class ResultView extends ViewPart {
         String filePath = fileDialog.open();
         if (filePath != null) {
             try (CSVWriter writer = new CSVWriter(new FileWriter(filePath))) {
-                String[] header = { "Severity", "Issue Type", "Test Class", "Test Method", "Line Number", "Description", "File Path" };
+                String[] header = { "Project Name", "Severity", "Issue Type", "Test Class", "Test Method", "Line Number", "Description", "File Path" };
                 writer.writeNext(header);
 
                 // check if the input is a list of ProjectSection
@@ -232,6 +233,7 @@ public class ResultView extends ViewPart {
                                 // filter out suppressed cases
                                 if (isNotSuppressed(error)) {
                                     String[] line = new String[]{
+                                    		section.getProjectName(),
                                             error.getSeverity().toString(),
                                             error.getIssueType(),
                                             error.getTestSuite(),
@@ -365,15 +367,22 @@ public class ResultView extends ViewPart {
     }
 
     public void updateViewFromProjects(List<String> projectPaths) {
+    	//here we get all the project roots in the workspace
         List<ProjectSection> input = new ArrayList<>();
         for (String projectPath : projectPaths) {
             String projectName = new File(projectPath).getName();
             ProjectSection projectSection = new ProjectSection(projectName);
 
-            String jsonFilePath = Paths.get(projectPath, "AAA", "results.json").toString();
-            File jsonFile = new File(jsonFilePath);
-            if (jsonFile.exists() && jsonFile.isFile()) {
-                try (FileReader reader = new FileReader(jsonFilePath)) {
+            String resultFilePath = Paths.get(projectPath, "AAA", "results.json").toString();
+            String suppressedFilePath = Paths.get(projectPath, "suppressed-cases.csv").toString();
+
+            // we can load the suppressed cases from multiple projects
+            suppressedCaseManager.setFilePath(suppressedFilePath);
+            suppressedCaseManager.loadSuppressedCases();
+
+            File resultFile = new File(resultFilePath);
+            if (resultFile.exists() && resultFile.isFile()) {
+                try (FileReader reader = new FileReader(resultFilePath)) {
                     JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 
                     // Project Stats
