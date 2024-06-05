@@ -4,6 +4,4 @@ src/com/.DS_Store
 target/
 model/xgboost.model
 /bin/
-aaa-config.yaml
 aaaanalyzer.iml
-method-invocation-rules.yaml

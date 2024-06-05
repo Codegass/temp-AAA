@@ -19,6 +19,6 @@ public class MethodRule {
      * @return true if both the class and the method name match the patterns
      */
     public boolean matches(String qualifiedName, String methodName) {
-        return classPattern.matcher(qualifiedName).find() && methodPattern.matcher(methodName).find();
+        return classPattern.matcher(qualifiedName).matches() && methodPattern.matcher(methodName).matches();
     }
 }

@@ -53,18 +53,19 @@ public class AntiPatternDetector {
             }
 
             // process the expanded method and replace with level 0 method for the submethods to keep line number simple
-            int lastValidIndex = -1;
-            for (int i = 0; i < levelColumn.size(); i++) {
-                if (levelColumn.get(i) > 0) {
-                    if (lastValidIndex != -1) {
-                        aaaColumn.set(i, aaaColumn.get(lastValidIndex));
-                        functionNameColumn.set(i, functionNameColumn.get(lastValidIndex));
-                        lineNumberColumn.set(i, lineNumberColumn.get(lastValidIndex));
-                        qualifiedNameColumn.set(i, qualifiedNameColumn.get(lastValidIndex));
-                    }
-                    lastValidIndex = i;
-                }
-            }
+            // NOTE: This may lead to incorrect anti-pattern detection
+//            int lastValidIndex = -1;
+//            for (int i = 0; i < levelColumn.size(); i++) {
+//                if (levelColumn.get(i) > 0) {
+//                    if (lastValidIndex != -1) {
+//                        aaaColumn.set(i, aaaColumn.get(lastValidIndex));
+//                        functionNameColumn.set(i, functionNameColumn.get(lastValidIndex));
+//                        lineNumberColumn.set(i, lineNumberColumn.get(lastValidIndex));
+//                        qualifiedNameColumn.set(i, qualifiedNameColumn.get(lastValidIndex));
+//                    }
+//                    lastValidIndex = i;
+//                }
+//            }
 
             // Process the lists
             for (int i = 0; i < records.size(); i++) {

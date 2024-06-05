@@ -1,0 +1,21 @@
+AAAIssueType:
+  multipleAAA:
+    Severity: "Minor"
+    Detect: true
+  missingAssert:
+    Severity: "Blocker"
+    Detect: true
+  assertPrecondition:
+    Severity: "Info"
+    Detect: true
+  obscureAssert:
+    Severity: "Major"
+    Detect: true
+  suppressedException:
+    Severity: "Major"
+    Detect: true
+  arrangeAndQuit:
+    Severity: "Info"
+    Detect: true
+ExcludedTestsPath:
+  - "absolute/path/to/the/test/file"
