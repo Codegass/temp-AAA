@@ -679,7 +679,7 @@ public class ContextMenuHandler implements IObjectActionDelegate {
                 System.out.println("begin dfs");
                 try {
                     dfs(cu, md, 1, visited, "", miAnalyzer);
-                    DesignFlawDetector designFlawDetector = new DesignFlawDetector();
+                    DesignFlawDetector designFlawDetector = new DesignFlawDetector(miAnalyzer);
                     //detect design flaw
                     if (designFlawDetector.detectObscureAssert(md)) {
                         List<Integer> linenumbers = designFlawDetector.getLineNumbers();

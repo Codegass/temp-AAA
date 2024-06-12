@@ -9,6 +9,7 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.SimpleFormatter;
 import java.io.IOException;
+import com.envestnet.aaaplugin.core.ast.MethodInvocationAnalyzer;
 
 public class ObscureAssertVisitor extends ASTVisitor {
     private boolean obscureAssertFound = false;
@@ -17,8 +18,13 @@ public class ObscureAssertVisitor extends ASTVisitor {
 
     private Stack<List<Integer>> complexityStack = new Stack<>();
     private List<Integer> recordedLineNumbers = new ArrayList<>();
+    private MethodInvocationAnalyzer methodInvocationAnalyzer;
 
     private static final Logger LOGGER = Logger.getLogger(ObscureAssertVisitor.class.getName());
+
+    public ObscureAssertVisitor(MethodInvocationAnalyzer methodInvocationAnalyzer) {
+        this.methodInvocationAnalyzer = methodInvocationAnalyzer;
+    }
 
     static {
         try {
@@ -70,7 +76,7 @@ public class ObscureAssertVisitor extends ASTVisitor {
 
     @Override
     public boolean visit(MethodInvocation node) {
-        if (maxComplexityInCurrentBlock >= 2 && isAssertion(node)) {
+        if (maxComplexityInCurrentBlock >= 2 && methodInvocationAnalyzer.isAssert(node)) {
             obscureAssertFound = true;
             recordLineNumber(node, false);
         }
@@ -80,21 +86,6 @@ public class ObscureAssertVisitor extends ASTVisitor {
     private boolean isControlFlowStatement(ASTNode node) {
         return node instanceof IfStatement || node instanceof ForStatement ||
                 node instanceof WhileStatement || node instanceof SwitchStatement; // Already considers SwitchStatement
-    }
-
-    private boolean isAssertion(MethodInvocation node) {
-        IMethodBinding binding = node.resolveMethodBinding();
-        if (binding == null) return false;
-        ITypeBinding declaringClass = binding.getDeclaringClass();
-        if (declaringClass != null) {
-            String className = declaringClass.getQualifiedName();
-            return className.startsWith("org.junit") ||
-                    className.startsWith("org.hamcrest") ||
-                    className.startsWith("org.testng") ||
-                    className.startsWith("org.assertj") ||
-                    className.startsWith("com.google.common.truth");
-        }
-        return false;
     }
 
     private void recordLineNumber(ASTNode node, boolean isControlFlowStatement) {
