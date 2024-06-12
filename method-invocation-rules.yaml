@@ -1,30 +1,30 @@
 asserts:
   - packages:
-      - ".*\\.Assert.*"
-      - ".*MatcherAssert.*"
-      - "org\\.hamcrest.*"
-      - "org\\.junit.*"
-      - "org\\.assertj.*"
-      - "com\\.google\\.common\\.truth.*"
-      - "org\\.testng.*"
+      - ".Assert"
+      - "MatcherAssert"
+      - "org.hamcrest"
+      - "org.junit"
+      - "org.assertj"
+      - "com.google.common.truth"
+      - "org.testng"
   - methods:
-      - "org\\.mockito.*#verify*"
-      - "org\\.easymock.*#verify*"
+      - "org.mockito#verify"
+      - "org.easymock#verify"
 
 junitExpectedException:
   - packages:
-      - "org\\.junit\\.rules\\.ExpectedException.*"
+      - "org.junit.rules.ExpectedException"
 
 mock:
   - packages:
-      - "org\\.mockito.*"
-      - "org\\.easymock.*"
-      - "org\\.powermock.*"
-      - "org\\.jmock.*"
-      - "org\\.jmockit.*"
-      - "org\\.powermock.*"
-      - "org\\.springframework\\.test.*"
-      - "org\\.springframework\\.mock.*"
+      - "org.mockito"
+      - "org.easymock"
+      - "org.powermock"
+      - "org.jmock"
+      - "org.jmockit"
+      - "org.powermock"
+      - "org.springframework.test"
+      - "org.springframework.mock"
   - excludeMethods:
-      - "org\\.mockito.*#verify*"
-      - "org\\.easymock.*#verify*"
+      - "org.mockito#verify"
+      - "org.easymock#verify"

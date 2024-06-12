@@ -1,24 +1,29 @@
 package com.envestnet.aaaplugin.util.config.data;
 
-import java.util.regex.Pattern;
-
 public class MethodRule {
-    private Pattern classPattern; // Compiled regex for class matching
-    private Pattern methodPattern; // Compiled regex for method matching
+    private String className; // Class name for matching
+    private String methodName; // Method name for matching
 
-    public MethodRule(Pattern classPattern, Pattern methodPattern) {
-        this.classPattern = classPattern;
-        this.methodPattern = methodPattern;
+    /**
+     * Constructs a MethodRule with the specified class name and method name.
+     *
+     * @param className the class name to match
+     * @param methodName the method name to match
+     */
+    public MethodRule(String className, String methodName) {
+        this.className = className;
+        this.methodName = methodName;
     }
 
     /**
-     * Checks if both the class and method match this rule's patterns.
+     * Checks if both the class and method match this rule's Strings.
      *
      * @param qualifiedName the fully qualified class name
      * @param methodName the method name to be checked
-     * @return true if both the class and the method name match the patterns
+     * @return true if both the class and the method name contains the Strings
      */
     public boolean matches(String qualifiedName, String methodName) {
-        return classPattern.matcher(qualifiedName).matches() && methodPattern.matcher(methodName).matches();
+        return (className != null && !className.isEmpty() && qualifiedName.contains(className))
+                && (this.methodName != null && !this.methodName.isEmpty() && methodName.contains(this.methodName));
     }
 }

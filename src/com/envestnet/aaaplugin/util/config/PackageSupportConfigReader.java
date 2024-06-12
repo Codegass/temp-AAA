@@ -55,15 +55,13 @@ public class PackageSupportConfigReader {
     }
 
     private MethodInvocationRule createRuleFromSection(List<Map<String, List<String>>> section) {
-        List<Pattern> packagePatterns = new ArrayList<>();
+        List<String> packagePatterns = new ArrayList<>();
         List<MethodRule> methodRules = new ArrayList<>();
         List<MethodRule> excludeRules = new ArrayList<>();
 
         for (Map<String, List<String>> rule : section) {
             if (rule.containsKey("packages")) {
-                packagePatterns.addAll(rule.get("packages").stream()
-                        .map(Pattern::compile)
-                        .collect(Collectors.toList()));
+                packagePatterns.addAll(rule.get("packages"));
             }
             if (rule.containsKey("methods")) {
                 methodRules.addAll(rule.get("methods").stream()
@@ -82,7 +80,7 @@ public class PackageSupportConfigReader {
 
     private MethodRule createMethodRule(String methodPattern) {
         String[] parts = methodPattern.split("#");
-        return new MethodRule(Pattern.compile(parts[0].replaceAll("\\*", ".*")), Pattern.compile(parts[1].replaceAll("\\*", ".*")));
+        return new MethodRule(parts[0], parts[1]);
     }
 
     public boolean matchesRule(String qualifiedClassName, String methodName, String sectionKey) {
